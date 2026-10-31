@@ -1,0 +1,5 @@
+# dữ liệu nét chữ tải về (Arphic PL / LGPL) — tải lại bằng fetch-char.js khi render
+**/data/
+# bản render và ảnh kiểm tra tạm
+**/out/
+scripts/node_modules/

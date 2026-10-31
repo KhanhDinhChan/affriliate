@@ -1,0 +1,12 @@
+{
+  "name": "triet-tu-chu-han-renderer",
+  "private": true,
+  "description": "Vẽ chữ Hán từng nét, tách/ghép bộ thủ, xuất MP4 (canvas + Playwright + ffmpeg)",
+  "scripts": {
+    "fetch": "node fetch-char.js",
+    "render": "node render.js"
+  },
+  "dependencies": {
+    "playwright": "^1.47.0"
+  }
+}
