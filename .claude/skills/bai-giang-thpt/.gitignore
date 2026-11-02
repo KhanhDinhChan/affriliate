@@ -1,0 +1,5 @@
+# thư viện cài bằng npm install
+engine/node_modules/
+engine/package-lock.json
+# bản render tạm, ảnh tĩnh duyệt bố cục
+**/out/

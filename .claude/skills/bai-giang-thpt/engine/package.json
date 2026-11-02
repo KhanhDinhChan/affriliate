@@ -1,0 +1,11 @@
+{
+  "name": "bai-giang-thpt-engine",
+  "private": true,
+  "description": "Dựng video bài giảng THPT: công thức (MathJax/mhchem), mô phỏng, ảnh tư liệu, bản đồ, dòng thời gian",
+  "scripts": { "render": "node render.js" },
+  "dependencies": {
+    "mathjax-full": "3.2.1",
+    "topojson-client": "3.1.0",
+    "world-atlas": "2.0.2"
+  }
+}
