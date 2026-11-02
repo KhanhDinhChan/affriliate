@@ -1,0 +1,11 @@
+{
+  "name": "video-vat-ly-renderer",
+  "private": true,
+  "description": "Xuất template HTML canvas thành MP4 (Playwright + ffmpeg)",
+  "scripts": {
+    "render": "node html2mp4.js"
+  },
+  "dependencies": {
+    "playwright": "^1.47.0"
+  }
+}

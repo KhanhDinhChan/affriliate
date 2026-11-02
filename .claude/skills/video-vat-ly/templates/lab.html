@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8">
+<!-- PHONG CÁCH 1 · "PHÒNG THÍ NGHIỆM" — tuyến Hiểu bản chất / Sai lầm kinh điển.
+     Nền xanh đêm kẻ lưới bản vẽ, mô phỏng chạy bằng công thức thật, vectơ theo bảng màu đại lượng. -->
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;700;800&family=Pangolin&display=swap" rel="stylesheet">
+<style>html,body{margin:0;background:#000}canvas{display:block}</style>
+</head><body><canvas id="c"></canvas>
+<script src="lib.js"></script>
+<script>
+// ===== NỘI DUNG — sửa phần này cho từng video =====
+const C = {
+  series: 'HIỂU BẢN CHẤT · 15 GIÂY',
+  hook: 'Bi nào chạm đất trước?',
+  reveal: 'CÙNG LÚC!',
+  explain: 'Phương thẳng đứng: giống hệt nhau',
+  formula: 't = √(2h / g)',
+  formulaNote: 'không phụ thuộc v₀',
+  tip: 'Ném ngang: tính t trước → L = v₀·t',
+  captions: [
+    [0.3, 1.6, 'Thả rơi viên A, ném ngang viên B. Viên nào chạm đất trước?'],
+    [1.6, 4.0, 'Xem chậm: các chấm ghi vị trí sau những khoảng thời gian bằng nhau.'],
+    [4.0, 7.4, 'Nối các chấm cùng thời điểm: chúng luôn ở cùng độ cao!'],
+    [7.4, 10.4, 'Vì thời gian rơi chỉ phụ thuộc độ cao h, không phụ thuộc v₀.'],
+    [10.4, 12.3, 'Mẹo làm bài: luôn tính thời gian rơi trước.'],
+  ],
+};
+window.SIZE = [1080, 1920];
+window.DURATION = 15;
+
+// ===== MÔ PHỎNG (đơn vị pixel, thời gian đã làm chậm) =====
+const X0 = 300, Y0 = 640, GROUND = 1300, TFALL = 1.6;
+const G = (2 * (GROUND - 30 - Y0)) / (TFALL * TFALL);
+const VX = (880 - X0) / TFALL;
+const LAUNCH = 1.6, STROBE = 0.2;
+const posA = (s) => [X0 - 60, Y0 + 0.5 * G * s * s];
+const posB = (s) => [X0 + VX * s, Y0 + 0.5 * G * s * s];
+
+const ctx = setupCanvas();
+const [W, H] = window.SIZE;
+
+function background() {
+  ctx.fillStyle = '#0B1422'; ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = '#132238'; ctx.lineWidth = 2;
+  for (let x = 0; x <= W; x += 60) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+  for (let y = 0; y <= H; y += 60) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+  ctx.strokeStyle = '#1B3150'; ctx.lineWidth = 3;
+  for (let x = 0; x <= W; x += 300) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+  for (let y = 0; y <= H; y += 300) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+}
+
+function stage(alpha) {
+  ctx.save(); ctx.globalAlpha = alpha;
+  // bàn
+  ctx.fillStyle = '#1E3352'; ctx.fillRect(90, Y0 + 30, X0 - 60, 24);
+  ctx.fillRect(110, Y0 + 54, 18, GROUND - Y0 - 54); ctx.fillRect(X0 - 48, Y0 + 54, 18, GROUND - Y0 - 54);
+  // mặt đất
+  ctx.strokeStyle = BRAND.phys.s; ctx.lineWidth = 5;
+  ctx.beginPath(); ctx.moveTo(60, GROUND); ctx.lineTo(W - 60, GROUND); ctx.stroke();
+  ctx.lineWidth = 3;
+  for (let x = 70; x < W - 60; x += 36) { ctx.beginPath(); ctx.moveTo(x, GROUND + 4); ctx.lineTo(x - 22, GROUND + 28); ctx.stroke(); }
+  // thước độ cao h
+  ctx.setLineDash([12, 10]); ctx.beginPath(); ctx.moveTo(70, Y0 + 30); ctx.lineTo(70, GROUND); ctx.stroke(); ctx.setLineDash([]);
+  ctx.restore();
+  text(ctx, 'h', 44, (Y0 + GROUND) / 2, { size: 52, weight: 800, color: BRAND.phys.s, alpha, font: BRAND.hand });
+}
+
+function ball(x, y, color, alpha = 1, r = 30) {
+  ctx.save(); ctx.globalAlpha = alpha;
+  const g = ctx.createRadialGradient(x - r / 3, y - r / 3, r / 6, x, y, r);
+  g.addColorStop(0, '#fff'); g.addColorStop(1, color);
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+
+window.renderAt = function (t) {
+  background();
+  brandBug(ctx, true);
+  seriesTag(ctx, C.series, BRAND.primary);
+
+  const sim = clamp(t - LAUNCH, 0, TFALL);
+  const explainA = vis(t, 4.0, 12.3);
+  const formulaA = vis(t, 7.4, 12.3);
+  stage(1 - formulaA * 0.75);
+
+  // chấm hoạt nghiệm (stroboscope)
+  const n = Math.floor(sim / STROBE + 1e-6);
+  for (let k = 0; k <= n; k++) {
+    const s = k * STROBE;
+    const [ax, ay] = posA(s); const [bx, by] = posB(s);
+    const a = (k === n && t < LAUNCH + TFALL ? 0 : 0.35) * (1 - formulaA * 0.7);
+    ball(ax, ay, '#DDE6F2', a, 22); ball(bx, by, BRAND.accent, a, 22);
+    // nối các chấm cùng thời điểm
+    const lp = easeOut(seg(t, 4.0 + k * 0.18, 4.4 + k * 0.18));
+    if (lp > 0 && k > 0) {
+      ctx.save(); ctx.globalAlpha = explainA * (1 - formulaA * 0.7); ctx.strokeStyle = BRAND.phys.E; ctx.lineWidth = 3; ctx.setLineDash([10, 10]);
+      ctx.beginPath(); ctx.moveTo(ax - 40, ay); ctx.lineTo(lerp(ax - 40, bx + 40, lp), by); ctx.stroke(); ctx.restore();
+    }
+  }
+
+  // hai viên bi
+  const [ax, ay] = posA(sim); const [bx, by] = posB(sim);
+  ball(ax, ay, '#DDE6F2', 1 - formulaA * 0.6); ball(bx, by, BRAND.accent, 1 - formulaA * 0.6);
+  const lab = vis(t, 0.5, LAUNCH + 0.2);
+  text(ctx, 'A · thả rơi', X0 - 60, Y0 - 150, { size: 40, weight: 700, color: '#DDE6F2', alpha: lab });
+  ctx.save(); ctx.globalAlpha = lab * 0.6; ctx.strokeStyle = '#DDE6F2'; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(X0 - 60, Y0 - 122); ctx.lineTo(X0 - 60, Y0 - 40); ctx.stroke(); ctx.restore();
+  text(ctx, 'B · ném ngang', X0 + 60, Y0 - 66, { size: 40, weight: 700, color: BRAND.accent, alpha: lab, align: 'left' });
+  if (t < LAUNCH + 0.5) vector(ctx, X0 + 34, Y0, X0 + 210, Y0, BRAND.phys.v, 'v₀', { progress: easeOut(seg(t, 0.9, 1.4)), alpha: 1 - seg(t, LAUNCH, LAUNCH + 0.5), lx: -40, ly: 52 });
+
+  // vectơ vận tốc tại một thời điểm (phần giải thích)
+  if (explainA > 0) {
+    const s = 4 * STROBE; const [pax, pay] = posA(s); const [pbx, pby] = posB(s); const vy = G * s * 0.32; const vx = VX * 0.32;
+    const p = easeOut(seg(t, 5.2, 6.0)); const al = explainA * (1 - formulaA * 0.8);
+    vector(ctx, pax, pay, pax, pay + vy, BRAND.phys.v, 'vᵧ', { progress: p, alpha: al, lx: -70, ly: 0 });
+    vector(ctx, pbx, pby, pbx, pby + vy, BRAND.phys.v, 'vᵧ', { progress: p, alpha: al, lx: 16, ly: 0 });
+    vector(ctx, pbx, pby, pbx + vx, pby, BRAND.phys.v, 'vₓ', { progress: easeOut(seg(t, 6.0, 6.6)), alpha: al * 0.7, dash: [14, 10], ly: -30 });
+  }
+
+  // tiêu đề trên cùng — đổi theo từng đoạn
+  const hookA = vis(t, 0.3, LAUNCH + TFALL);
+  text(ctx, C.hook, W / 2, 410, { size: 76, weight: 800, color: '#fff', alpha: hookA, reveal: seg(t, 0.3, 1.1), maxWidth: W - 120 });
+  const rv = backOut(seg(t, LAUNCH + TFALL, LAUNCH + TFALL + 0.45));
+  if (t >= LAUNCH + TFALL && t < 4.0 + 0.35) {
+    ctx.save(); ctx.translate(W / 2, 410); ctx.scale(rv, rv);
+    text(ctx, C.reveal, 0, 0, { size: 110, weight: 800, color: BRAND.phys.E, alpha: vis(t, LAUNCH + TFALL, 4.0), shadow: 'rgba(255,200,61,0.5)' });
+    ctx.restore();
+  }
+  text(ctx, C.explain, W / 2, 410, { size: 60, weight: 800, color: BRAND.phys.E, alpha: vis(t, 4.0, 7.4), maxWidth: W - 120 });
+
+  // thẻ công thức
+  if (formulaA > 0) {
+    const s = backOut(seg(t, 7.4, 7.9));
+    ctx.save(); ctx.globalAlpha = formulaA; ctx.translate(W / 2, 900); ctx.scale(s, s);
+    roundRect(ctx, -400, -190, 800, 380, 36, 'rgba(14,26,43,0.94)', BRAND.phys.E, 5);
+    text(ctx, C.formula, 0, -40, { size: 120, weight: 800, color: '#fff' });
+    text(ctx, C.formulaNote, 0, 100, { size: 56, weight: 700, color: BRAND.phys.E, reveal: seg(t, 8.2, 8.9) });
+    ctx.restore();
+    text(ctx, C.tip, W / 2, 1180, { size: 50, weight: 700, color: BRAND.accent, alpha: vis(t, 10.4, 12.3), reveal: seg(t, 10.4, 11.2) });
+  }
+
+  captionAt(ctx, t, C.captions, true);
+  progressBar(ctx, t);
+  endCard(ctx, t, 12.3, true);
+};
+</script>
+</body></html>

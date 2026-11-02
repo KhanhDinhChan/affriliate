@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8">
+<!-- PHONG CÁCH 2 · "BẢNG PHẤN" — tuyến Giải nhanh đề thi / Bẫy đề.
+     Bảng xanh, phấn trắng viết tay, khoanh – gạch – đánh dấu như thầy giảng thật. Đồng hồ đếm ngược tạo kịch tính. -->
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;700;800&family=Pangolin&display=swap" rel="stylesheet">
+<style>html,body{margin:0;background:#000}canvas{display:block}</style>
+</head><body><canvas id="c"></canvas>
+<script src="lib.js"></script>
+<script>
+// ===== NỘI DUNG =====
+const C = {
+  series: 'GIẢI NHANH · DẠNG ĐỀ TỐT NGHIỆP',
+  question: 'Vật dao động điều hoà theo phương trình',
+  equation: 'x = 5cos(4πt + π/3) cm',
+  ask: 'Tốc độ cực đại của vật là:',
+  options: ['A. 5π cm/s', 'B. 10π cm/s', 'C. 20π cm/s', 'D. 40π cm/s'],
+  correct: 2,
+  // các phần của phương trình được khoanh: [chuỗi con, màu, thời điểm]
+  marks: [['5', 'E', 6.0, 'under'], ['4π', 'E', 6.5, 'under'], ['π/3', 'F', 4.2, 'circle']],
+  trap: 'Bẫy: π/3 là pha ban đầu — không cần!',
+  steps: ['A = 5 cm ;  ω = 4π rad/s', 'vmax = ωA = 4π · 5 = 20π cm/s'],
+  note: ['Ghi nhớ', 'vmax = ωA      amax = ω²A'],
+  timer: 30, solvedAt: 10.2,
+  captions: [
+    [0.3, 3.6, 'Câu này chỉ cần 10 giây nếu không dính bẫy.'],
+    [3.6, 5.8, 'Bẫy đầu tiên: pha ban đầu π/3 — câu này không dùng tới.'],
+    [5.8, 8.0, 'Chỉ cần biên độ A bằng 5 và tần số góc ω bằng 4π.'],
+    [8.0, 10.6, 'Tốc độ cực đại bằng ω nhân A, bằng 20π. Chọn C!'],
+    [10.6, 13.8, 'Nhớ cặp công thức này là ăn trọn điểm dạng bài.'],
+  ],
+};
+window.SIZE = [1080, 1920];
+window.DURATION = 17;
+
+const ctx = setupCanvas();
+const [W, H] = window.SIZE;
+const CHALK = '#F2F1E6';
+const chalkColor = (k) => ({ E: '#FFD966', F: '#FF8FA3', v: '#8BE3F2', a: '#D1A6FF', B: '#8EF0B5' }[k] || CHALK);
+
+// Nền bảng: vẽ một lần ra canvas phụ (vết phấn mờ, giả ngẫu nhiên có hạt giống cố định)
+const bg = document.createElement('canvas'); bg.width = W; bg.height = H;
+(() => {
+  const b = bg.getContext('2d');
+  const g = b.createRadialGradient(W / 2, H * 0.45, 100, W / 2, H * 0.45, H * 0.8);
+  g.addColorStop(0, '#2A4A40'); g.addColorStop(1, '#16302A');
+  b.fillStyle = g; b.fillRect(0, 0, W, H);
+  let seed = 7; const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  for (let i = 0; i < 260; i++) { // vệt lau bảng
+    b.globalAlpha = 0.025 + rnd() * 0.03; b.strokeStyle = '#fff'; b.lineWidth = 30 + rnd() * 60;
+    const x = rnd() * W, y = rnd() * H; b.beginPath(); b.moveTo(x, y); b.quadraticCurveTo(x + 120, y - 40, x + 260 * rnd(), y + 30); b.stroke();
+  }
+  b.globalAlpha = 1;
+})();
+
+function chalk(s, x, y, o = {}) {
+  text(ctx, s, x, y, { font: BRAND.hand, weight: 400, color: o.color || CHALK, shadow: 'rgba(255,255,255,0.25)', ...o });
+}
+
+// Vòng khoanh tay (hơi lệch như vẽ thật)
+function scribble(cx, cy, rx, ry, p, color) {
+  if (p <= 0) return;
+  ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = 6; ctx.lineCap = 'round'; ctx.beginPath();
+  const end = p * Math.PI * 2.15;
+  for (let a = 0; a <= end; a += 0.05) {
+    const w = 1 + 0.06 * Math.sin(a * 3);
+    const x = cx + rx * w * Math.cos(a - 2.2), y = cy + ry * w * Math.sin(a - 2.2);
+    a === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  }
+  ctx.stroke(); ctx.restore();
+}
+
+// Vị trí chuỗi con trong một dòng chữ căn giữa
+function spanOf(line, sub, size, cx) {
+  ctx.save(); ctx.font = `400 ${size}px ${BRAND.hand}`;
+  const total = ctx.measureText(line).width; const i = line.indexOf(sub);
+  const x0 = cx - total / 2 + ctx.measureText(line.slice(0, i)).width; const w = ctx.measureText(sub).width;
+  ctx.restore();
+  return { cx: x0 + w / 2, w };
+}
+
+function timer(t) {
+  const x = W - 110, y = SAFE.top + 112, r = 56;
+  const used = Math.min(t - 0.5, C.solvedAt - 0.5); const left = Math.max(0, C.timer - Math.max(0, used) * (C.timer / 30));
+  const p = left / C.timer; const done = t >= C.solvedAt;
+  ctx.save(); ctx.lineWidth = 12; ctx.strokeStyle = 'rgba(255,255,255,0.15)'; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke();
+  ctx.strokeStyle = done ? BRAND.accent : '#FFD966'; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.arc(x, y, r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * p); ctx.stroke(); ctx.restore();
+  text(ctx, Math.ceil(left) + 's', x, y + 2, { size: 42, weight: 800, color: '#fff' });
+  if (done) text(ctx, 'dư ' + Math.ceil(left) + 's!', x, y + 92, { size: 36, weight: 800, color: BRAND.accent, alpha: seg(t, C.solvedAt, C.solvedAt + 0.3) });
+}
+
+window.renderAt = function (t) {
+  ctx.drawImage(bg, 0, 0);
+  brandBug(ctx, true);
+  seriesTag(ctx, C.series, '#C2410C');
+  timer(t);
+
+  // Đề bài
+  chalk(C.question, W / 2, 460, { size: 50, reveal: seg(t, 0.4, 1.4) });
+  chalk(C.equation, W / 2, 560, { size: 74, reveal: seg(t, 1.2, 2.2) });
+  chalk(C.ask, W / 2, 660, { size: 50, reveal: seg(t, 2.0, 2.6) });
+  for (const [sub, col, at, kind] of C.marks) {
+    const s = spanOf(C.equation, sub, 74, W / 2); const p = easeOut(seg(t, at, at + 0.5));
+    if (kind === 'circle') scribble(s.cx, 560, s.w / 2 + 18, 46, p, chalkColor(col));
+    else if (p > 0) { // gạch chân lượn sóng
+      ctx.save(); ctx.strokeStyle = chalkColor(col); ctx.lineWidth = 6; ctx.lineCap = 'round'; ctx.beginPath();
+      const x0 = s.cx - s.w / 2 - 6, x1 = x0 + (s.w + 12) * p;
+      for (let x = x0; x <= x1; x += 4) { const y = 606 + 4 * Math.sin((x - x0) / 9); x === x0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y); }
+      ctx.stroke(); ctx.restore();
+    }
+  }
+  // Đáp án A–D (lưới 2×2)
+  C.options.forEach((o, i) => {
+    const x = i % 2 ? W * 0.72 : W * 0.28; const y = 780 + Math.floor(i / 2) * 100;
+    const a = easeOut(seg(t, 2.4 + i * 0.2, 2.8 + i * 0.2));
+    const wrong = t > C.solvedAt && i !== C.correct;
+    chalk(o, x, y, { size: 54, alpha: a * (wrong ? 0.35 : 1) });
+    if (i === C.correct) scribble(x, y, 190, 52, easeOut(seg(t, C.solvedAt - 0.3, C.solvedAt + 0.3)), BRAND.accent);
+  });
+  // Gạch ngang ngăn đề và lời giải
+  ctx.save(); ctx.strokeStyle = 'rgba(242,241,230,0.4)'; ctx.lineWidth = 4; ctx.beginPath();
+  ctx.moveTo(120, 950); ctx.lineTo(lerp(120, W - 120, easeOut(seg(t, 3.4, 3.9))), 950); ctx.stroke(); ctx.restore();
+
+  // Lời giải
+  const solA = 1 - seg(t, 10.4, 10.8); // lời giải nhường chỗ cho ô ghi nhớ
+  chalk(C.trap, W / 2, 1030, { size: 50, color: chalkColor('F'), reveal: seg(t, 3.8, 5.0), alpha: solA });
+  C.steps.forEach((s, i) => chalk(s, W / 2, 1130 + i * 105, { size: 58, color: i ? chalkColor('E') : CHALK, reveal: seg(t, 6.0 + i * 1.9, 7.4 + i * 1.9), alpha: solA }));
+
+  // Ô ghi nhớ
+  const na = vis(t, 10.6, 13.8);
+  if (na > 0) {
+    const s = backOut(seg(t, 10.6, 11.1));
+    ctx.save(); ctx.globalAlpha = na; ctx.translate(W / 2, 1130); ctx.scale(s, s);
+    ctx.setLineDash([18, 12]); roundRect(ctx, -440, -120, 880, 240, 28, 'rgba(0,0,0,0.25)', '#FFD966', 5); ctx.setLineDash([]);
+    ctx.restore();
+    chalk(C.note[0], W / 2, 1060, { size: 46, color: '#FFD966', alpha: na });
+    chalk(C.note[1], W / 2, 1160, { size: 72, alpha: na });
+  }
+
+  captionAt(ctx, t, C.captions, true);
+  progressBar(ctx, t);
+  endCard(ctx, t, 13.8, true);
+};
+</script>
+</body></html>

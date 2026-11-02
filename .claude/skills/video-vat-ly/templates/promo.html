@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8">
+<!-- PHONG CÁCH 3 · "SÁNG & TIN CẬY" — tuyến Kết quả học viên / Tuyển sinh. Đối tượng chính: phụ huynh.
+     Nền sáng, chữ động (kinetic typography), biểu đồ, thẻ thông tin rõ ràng. Hoạ tiết sóng hình sin là dấu hiệu thương hiệu. -->
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;700;800&family=Pangolin&display=swap" rel="stylesheet">
+<style>html,body{margin:0;background:#000}canvas{display:block}</style>
+</head><body><canvas id="c"></canvas>
+<script src="lib.js"></script>
+<script>
+// ===== NỘI DUNG — mọi con số, lời hứa phải là THẬT trước khi đăng =====
+const C = {
+  series: 'TUYỂN SINH LỚP 12 · 2026–2027',
+  hook: [['Con học Lý', 0.3], ['rất chăm', 0.8], ['mà vẫn', 1.2], ['mất điểm?', 1.6]],
+  reason: 'Vì thuộc công thức nhưng chưa hiểu bản chất.',
+  promises: ['Nhóm nhỏ, tối đa [12] học sinh', 'Thí nghiệm thật trên lớp mỗi tuần', 'Báo cáo tiến bộ cho phụ huynh mỗi tháng'],
+  chartTitle: 'Điểm TB bài kiểm tra · lớp [12A1]',
+  sample: true, // true = hiện nhãn "SỐ LIỆU MẪU". Thay số thật rồi đặt false.
+  bars: [['Đầu khoá', 5.8], ['Giữa khoá', 7.1], ['Cuối khoá', 8.2]],
+  info: ['KHAI GIẢNG [dd/mm]', 'Thứ 3 – 5 – 7 · 18:00–19:30', '[Địa chỉ trung tâm]'],
+  captions: [
+    [0.3, 2.6, 'Con học Lý rất chăm mà điểm vẫn chưa như mong muốn?'],
+    [2.6, 6.6, 'Ở trung tâm, mỗi công thức đều bắt đầu từ một thí nghiệm.'],
+    [6.6, 10.4, 'Tiến bộ được đo bằng bài kiểm tra định kỳ.'],
+    [10.4, 13.0, 'Lớp 12 khai giảng đợt mới, nhận học thử miễn phí.'],
+  ],
+};
+window.SIZE = [1080, 1920];
+window.DURATION = 16;
+
+const ctx = setupCanvas();
+const [W, H] = window.SIZE;
+
+function background(t) {
+  ctx.fillStyle = BRAND.paper; ctx.fillRect(0, 0, W, H);
+  // hoạ tiết sóng thương hiệu
+  for (let k = 0; k < 3; k++) {
+    ctx.save(); ctx.globalAlpha = 0.07 + k * 0.03; ctx.strokeStyle = BRAND.primary; ctx.lineWidth = 4;
+    ctx.beginPath();
+    for (let x = 0; x <= W; x += 8) { const y = 1560 + k * 26 + 40 * Math.sin(x / 120 + t * 1.2 + k); x ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
+    ctx.stroke(); ctx.restore();
+  }
+}
+
+function check(x, y, p, color) {
+  if (p <= 0) return;
+  ctx.save(); ctx.beginPath(); ctx.arc(x, y, 34, 0, Math.PI * 2); ctx.fillStyle = color; ctx.globalAlpha = clamp(p * 2); ctx.fill();
+  ctx.strokeStyle = '#fff'; ctx.lineWidth = 8; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.globalAlpha = 1;
+  const q = clamp(p * 1.5 - 0.3); ctx.beginPath(); ctx.moveTo(x - 15, y + 1);
+  if (q < 0.4) ctx.lineTo(x - 15 + 10 * q / 0.4, y + 1 + 11 * q / 0.4);
+  else { ctx.lineTo(x - 5, y + 12); ctx.lineTo(x - 5 + 21 * (q - 0.4) / 0.6, y + 12 - 25 * (q - 0.4) / 0.6); }
+  ctx.stroke(); ctx.restore();
+}
+
+window.renderAt = function (t) {
+  background(t);
+  brandBug(ctx, false);
+  seriesTag(ctx, C.series, BRAND.primary);
+
+  // 1. Chữ động mở đầu
+  const hookA = vis(t, 0, 2.6);
+  C.hook.forEach(([w, at], i) => {
+    const p = backOut(seg(t, at, at + 0.35)); const last = i === C.hook.length - 1;
+    ctx.save(); ctx.translate(W / 2, 560 + i * 150); ctx.scale(p, p);
+    text(ctx, w, 0, 0, { size: last ? 132 : 112, weight: 800, color: last ? BRAND.accent : BRAND.ink, alpha: hookA });
+    ctx.restore();
+  });
+
+  // 2. Lý do + 3 cam kết
+  const pa = vis(t, 2.6, 6.6);
+  if (pa > 0) {
+    paragraph(ctx, C.reason, W / 2, 470, W * 0.8, { size: 62, weight: 800, color: BRAND.ink, alpha: pa, reveal: seg(t, 2.6, 3.4) });
+    C.promises.forEach((s, i) => {
+      const at = 3.6 + i * 0.7; const p = easeOut(seg(t, at, at + 0.5)); const y = 800 + i * 190;
+      ctx.save(); ctx.globalAlpha = pa * p; roundRect(ctx, 100 + (1 - p) * 60, y - 70, W - 200, 140, 28, '#fff'); ctx.restore();
+      check(185 + (1 - p) * 60, y, p * pa, [BRAND.primary, BRAND.accent, BRAND.phys.B][i]);
+      text(ctx, s, 250 + (1 - p) * 60, y + 2, { size: 44, weight: 700, color: BRAND.ink, align: 'left', alpha: pa * p, maxWidth: W - 200 - 190 });
+    });
+  }
+
+  // 3. Biểu đồ tiến bộ
+  const ca = vis(t, 6.6, 10.4);
+  if (ca > 0) {
+    text(ctx, C.chartTitle, W / 2, 400, { size: 52, weight: 800, color: BRAND.ink, alpha: ca });
+    if (C.sample) {
+      roundRect(ctx, W / 2 - 170, 455, 340, 56, 12, `rgba(255,77,109,${0.15 * ca})`);
+      text(ctx, 'SỐ LIỆU MẪU', W / 2, 484, { size: 32, weight: 800, color: BRAND.phys.F, alpha: ca });
+    }
+    const base = 1290, maxH = 640, bw = 200, gap = 90; const x0 = (W - (bw * 3 + gap * 2)) / 2;
+    ctx.save(); ctx.globalAlpha = ca * 0.4; ctx.strokeStyle = BRAND.ink; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(80, base); ctx.lineTo(W - 80, base); ctx.stroke(); ctx.restore();
+    C.bars.forEach(([lab, v], i) => {
+      const p = easeOut(seg(t, 7.0 + i * 0.6, 7.9 + i * 0.6)); const h = (v / 10) * maxH * p; const x = x0 + i * (bw + gap);
+      const col = i === C.bars.length - 1 ? BRAND.accent : BRAND.primary;
+      ctx.save(); ctx.globalAlpha = ca; roundRect(ctx, x, base - h, bw, h, 18, col); ctx.restore();
+      text(ctx, (v * p).toFixed(1), x + bw / 2, base - h - 50, { size: 64, weight: 800, color: col, alpha: ca * clamp(p * 3) });
+      text(ctx, lab, x + bw / 2, base + 50, { size: 40, weight: 700, color: '#51627A', alpha: ca });
+    });
+  }
+
+  // 4. Thẻ khai giảng
+  const ia = vis(t, 10.4, 13.0);
+  if (ia > 0) {
+    const s = backOut(seg(t, 10.4, 10.9));
+    ctx.save(); ctx.globalAlpha = ia; ctx.translate(W / 2, 900); ctx.scale(s, s);
+    roundRect(ctx, -440, -320, 880, 640, 40, '#fff');
+    roundRect(ctx, -440, -320, 880, 170, 40, BRAND.primary); ctx.fillStyle = BRAND.primary; ctx.fillRect(-440, -190, 880, 40);
+    ctx.restore();
+    text(ctx, C.info[0], W / 2, 665, { size: 72, weight: 800, color: '#fff', alpha: ia });
+    text(ctx, C.info[1], W / 2, 860, { size: 52, weight: 700, color: BRAND.ink, alpha: ia * clamp(seg(t, 10.8, 11.2)) });
+    text(ctx, C.info[2], W / 2, 980, { size: 46, weight: 600, color: '#51627A', alpha: ia * clamp(seg(t, 11.0, 11.4)) });
+    text(ctx, '★ Học thử miễn phí', W / 2, 1110, { size: 52, weight: 800, color: BRAND.accent, alpha: ia * clamp(seg(t, 11.3, 11.7)) });
+  }
+
+  captionAt(ctx, t, C.captions, false);
+  progressBar(ctx, t, BRAND.primary);
+  endCard(ctx, t, 13.0, false);
+};
+</script>
+</body></html>
