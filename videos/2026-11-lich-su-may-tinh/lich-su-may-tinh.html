@@ -1,0 +1,389 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8">
+<!-- PHONG CÁCH · GIẤY CẮT DÁN — "Lịch sử của máy tính" (Shorts / TikTok 9:16, 51 s).
+     Nền giấy nhàu, mọi hình là mảnh giấy cắt có bóng đổ + vân giấy, mép xé, băng dính dán góc,
+     chuyển động giật kiểu stop-motion 12 hình/giây. Mọi hình minh hoạ vẽ bằng code (không dùng ảnh có bản quyền).
+     Hợp đồng render: window.SIZE, window.DURATION, window.renderAt(t), canvas #c (dùng html2mp4.js của skill video-vat-ly). -->
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Be+Vietnam+Pro:wght@600;700;800&family=Patrick+Hand&family=Roboto+Slab:wght@700;800&display=swap" rel="stylesheet">
+<style>html,body{margin:0;background:#000}canvas{display:block}</style>
+</head><body><canvas id="c"></canvas>
+<script>
+window.SIZE = [1080, 1920];
+window.DURATION = 51;
+const CHANNEL = '[TÊN KÊNH]';
+window.ready = Promise.all(['80px Anton', '800 40px "Roboto Slab"', '60px "Patrick Hand"', '700 40px "Be Vietnam Pro"'].map((f) => document.fonts.load(f))).catch(() => {});
+
+// ===== Bảng màu giấy =====
+const BG = '#E6DAC2', CREAM = '#F6EFE0', CREAM2 = '#EFE5CF', RED = '#D9483B', MUSTARD = '#E8B33A', TEAL = '#2F7F7A',
+  NAVY = '#1F2E4A', BLACK = '#1B1A18', BROWN = '#8C5A2E', PEN = '#C8372D', SKY = '#7FB3D5', LEAF = '#9BC47A';
+const ANTON = 'Anton, "Be Vietnam Pro", sans-serif', SLAB = '"Roboto Slab", serif', HAND = '"Patrick Hand", sans-serif', SANS = '"Be Vietnam Pro", sans-serif';
+
+// ===== Lời dẫn / phụ đề =====
+const CAPS = [
+  [0.2, 4.0, 'Từ hạt bàn tính đến chiếc điện thoại trong túi bạn.'],
+  [4.0, 8.5, 'Từ thời cổ đại, người ta đã tính toán bằng bàn tính.'],
+  [8.5, 13.0, 'Năm 1642, Blaise Pascal chế tạo máy cộng bằng bánh răng.'],
+  [13.0, 15.3, 'Năm 1837, Charles Babbage thiết kế Máy giải tích.'],
+  [15.3, 17.5, 'Ada Lovelace viết thuật toán đầu tiên cho cỗ máy này.'],
+  [17.5, 20.3, 'Năm 1946, ENIAC ra đời: nặng khoảng 27 tấn,'],
+  [20.3, 23.0, 'dùng gần 18.000 bóng đèn điện tử, chiếm cả một căn phòng.'],
+  [23.0, 27.5, 'Năm 1947, bóng bán dẫn ra đời: nhỏ hơn, mát hơn, bền hơn.'],
+  [27.5, 32.0, 'Năm 1971, bộ vi xử lý thương mại đầu tiên chứa 2.300 bóng bán dẫn.'],
+  [32.0, 36.5, 'Năm 1981, máy tính cá nhân bắt đầu vào từng nhà.'],
+  [36.5, 41.0, 'Năm 1991, World Wide Web nối máy tính khắp thế giới.'],
+  [41.0, 45.5, 'Năm 2007, smartphone cảm ứng bùng nổ: máy tính gọn trong túi.'],
+  [45.5, 48.3, 'Từ 27 tấn xuống khoảng 200 gam, mà mạnh hơn hàng triệu lần.'],
+];
+
+const cv = document.getElementById('c'); cv.width = 1080; cv.height = 1920; const ctx = cv.getContext('2d');
+const W = 1080, H = 1920;
+
+// ===== Tiện ích =====
+const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, p) => a + (b - a) * p;
+const seg = (t, a, b) => clamp((t - a) / (b - a));
+const easeOut = (x) => 1 - Math.pow(1 - clamp(x), 3);
+const easeIn = (x) => Math.pow(clamp(x), 3);
+const backOut = (x) => { x = clamp(x); const c = 1.7; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); };
+const hash = (n) => { const v = Math.sin(n * 127.1 + 311.7) * 43758.5453; return v - Math.floor(v); };
+const stepT = (t) => Math.floor(t * 12) / 12; // stop-motion 12 hình/giây
+
+// Vân giấy (pattern) và nền giấy nhàu — tạo một lần
+const grainCv = document.createElement('canvas'); grainCv.width = grainCv.height = 256;
+(() => { const g = grainCv.getContext('2d'); const im = g.createImageData(256, 256);
+  for (let i = 0; i < 256 * 256; i++) { const v = 222 + hash(i * 1.37) * 33; im.data[i * 4] = v; im.data[i * 4 + 1] = v - 2; im.data[i * 4 + 2] = v - 6; im.data[i * 4 + 3] = 255; }
+  g.putImageData(im, 0, 0); g.strokeStyle = 'rgba(120,100,70,0.18)'; g.lineWidth = 1;
+  for (let i = 0; i < 60; i++) { const x = hash(i) * 256, y = hash(i + 9) * 256; g.beginPath(); g.moveTo(x, y); g.lineTo(x + (hash(i + 3) - 0.5) * 40, y + (hash(i + 5) - 0.5) * 12); g.stroke(); } })();
+const GRAIN = ctx.createPattern(grainCv, 'repeat');
+const bgCv = document.createElement('canvas'); bgCv.width = W; bgCv.height = H;
+(() => { const g = bgCv.getContext('2d'); g.fillStyle = BG; g.fillRect(0, 0, W, H);
+  for (let i = 0; i < 70; i++) { const cx = hash(i * 3) * W, cy = hash(i * 7) * H, r = 150 + hash(i * 11) * 380; g.beginPath();
+    for (let k = 0; k < 4; k++) { const a = k * Math.PI / 2 + hash(i * 13 + k) * 1.2; g.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r); }
+    g.closePath(); g.fillStyle = hash(i * 17) > 0.5 ? 'rgba(255,255,255,0.10)' : 'rgba(90,60,30,0.06)'; g.fill(); }
+  for (let i = 0; i < 30; i++) { const x = hash(i * 5) * W, y = hash(i * 19) * H, a = hash(i * 23) * Math.PI, L = 200 + hash(i * 29) * 600;
+    g.strokeStyle = 'rgba(90,60,30,0.10)'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(a) * L, y + Math.sin(a) * L); g.stroke();
+    g.strokeStyle = 'rgba(255,255,255,0.22)'; g.beginPath(); g.moveTo(x + 2, y + 1); g.lineTo(x + 2 + Math.cos(a) * L, y + 1 + Math.sin(a) * L); g.stroke(); }
+  g.globalCompositeOperation = 'multiply'; g.fillStyle = GRAIN; g.fillRect(0, 0, W, H); g.globalCompositeOperation = 'source-over';
+  const v = g.createRadialGradient(W / 2, H / 2, H * 0.3, W / 2, H / 2, H * 0.78); v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(70,45,20,0.22)'); g.fillStyle = v; g.fillRect(0, 0, W, H); })();
+
+// ===== Mảnh giấy =====
+// path: hàm vẽ đường viền; mảnh giấy có bóng đổ + vân giấy nhân (multiply)
+function paper(path, color, o = {}) {
+  ctx.save();
+  if (o.shadow !== false) { ctx.shadowColor = 'rgba(50,30,10,0.34)'; ctx.shadowBlur = o.blur ?? 10; ctx.shadowOffsetX = o.sx ?? 7; ctx.shadowOffsetY = o.sy ?? 10; }
+  ctx.beginPath(); path(); ctx.fillStyle = color; ctx.fill(o.rule || 'nonzero'); ctx.restore();
+  ctx.save(); ctx.beginPath(); path(); ctx.globalCompositeOperation = 'multiply'; ctx.globalAlpha = o.grain ?? 0.5; ctx.fillStyle = GRAIN; ctx.fill(o.rule || 'nonzero'); ctx.restore();
+}
+const rr = (x, y, w, h, r) => () => ctx.roundRect(x, y, w, h, r);
+const circ = (x, y, r) => () => { ctx.moveTo(x + r, y); ctx.arc(x, y, r, 0, Math.PI * 2); };
+const torn = (x, y, w, h, seed, j = 7, step = 18) => () => {
+  const nx = Math.max(2, Math.round(w / step)), ny = Math.max(2, Math.round(h / step)); const p = [];
+  for (let i = 0; i < nx; i++) p.push([x + w * i / nx, y + (hash(seed + i) - 0.5) * j]);
+  for (let i = 0; i < ny; i++) p.push([x + w + (hash(seed + 50 + i) - 0.5) * j, y + h * i / ny]);
+  for (let i = 0; i < nx; i++) p.push([x + w - w * i / nx, y + h + (hash(seed + 100 + i) - 0.5) * j]);
+  for (let i = 0; i < ny; i++) p.push([x + (hash(seed + 150 + i) - 0.5) * j, y + h - h * i / ny]);
+  ctx.moveTo(p[0][0], p[0][1]); p.forEach((q) => ctx.lineTo(q[0], q[1])); ctx.closePath();
+};
+const gearPath = (x, y, r, n, rot) => () => {
+  for (let i = 0; i < n * 4; i++) { const a = rot + i * Math.PI * 2 / (n * 4); const R = (i % 4 < 2) ? r : r * 0.8; i ? ctx.lineTo(x + R * Math.cos(a), y + R * Math.sin(a)) : ctx.moveTo(x + R * Math.cos(a), y + R * Math.sin(a)); }
+  ctx.closePath(); ctx.moveTo(x + r * 0.26, y); ctx.arc(x, y, r * 0.26, 0, Math.PI * 2);
+};
+function tape(x, y, w, rot, h = 44) {
+  ctx.save(); ctx.translate(x, y); ctx.rotate(rot); ctx.globalAlpha = 0.8; ctx.beginPath(); torn(-w / 2, -h / 2, w, h, Math.round(x + y), 5, 9)();
+  ctx.fillStyle = '#EEDC9E'; ctx.fill(); ctx.globalAlpha = 0.35; ctx.fillStyle = GRAIN; ctx.globalCompositeOperation = 'multiply'; ctx.fill(); ctx.restore();
+}
+// Rung nhẹ kiểu stop-motion cho từng mảnh
+function jit(seed, tq, fn) {
+  const f = Math.round(tq * 12); ctx.save(); ctx.translate((hash(seed * 7 + f) - 0.5) * 2.6, (hash(seed * 13 + f) - 0.5) * 2.6);
+  ctx.rotate((hash(seed * 3 + f) - 0.5) * 0.006); fn(); ctx.restore();
+}
+function txt(s, x, y, o = {}) {
+  ctx.save(); const sz = o.size || 48; ctx.font = `${o.w || 700} ${sz}px ${o.font || SANS}`; if (o.ls) ctx.letterSpacing = o.ls + 'px';
+  const w = ctx.measureText(s).width; if (o.max && w > o.max) ctx.font = `${o.w || 700} ${Math.floor(sz * o.max / w)}px ${o.font || SANS}`;
+  ctx.textAlign = o.align || 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = o.color || BLACK; ctx.globalAlpha = o.alpha ?? 1;
+  if (o.glow) { ctx.shadowColor = o.glow; ctx.shadowBlur = 14; } ctx.fillText(s, x, y); ctx.restore();
+}
+const measure = (s, font) => { ctx.save(); ctx.font = font; const w = ctx.measureText(s).width; ctx.restore(); return w; };
+// Chữ viết tay hiện dần
+function write(s, x, y, p, o = {}) {
+  if (p <= 0) return; ctx.save(); const sz = o.size || 50; ctx.font = `400 ${sz}px ${HAND}`; const w = ctx.measureText(s).width;
+  const x0 = o.align === 'left' ? x : x - w / 2; ctx.beginPath(); ctx.rect(x0 - 6, y - sz, (w + 12) * clamp(p), sz * 2); ctx.clip();
+  ctx.fillStyle = o.color || PEN; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(s, x0, y); ctx.restore();
+}
+function penArrow(x1, y1, x2, y2, p, color = PEN) {
+  if (p <= 0) return; const ex = lerp(x1, x2, p), ey = lerp(y1, y2, p), mx = (x1 + ex) / 2 + (ey - y1) * 0.15, my = (y1 + ey) / 2 - (ex - x1) * 0.15;
+  ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = 5; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.quadraticCurveTo(mx, my, ex, ey); ctx.stroke();
+  if (p >= 1) { const a = Math.atan2(ey - my, ex - mx); ctx.beginPath(); ctx.moveTo(ex - 22 * Math.cos(a - 0.5), ey - 22 * Math.sin(a - 0.5)); ctx.lineTo(ex, ey); ctx.lineTo(ex - 22 * Math.cos(a + 0.5), ey - 22 * Math.sin(a + 0.5)); ctx.stroke(); }
+  ctx.restore();
+}
+
+// ===== Hình minh hoạ từng thời kỳ (toạ độ tuyệt đối trong thẻ giấy x 110–950, y 680–1250) =====
+function abacus(u) {
+  const fx = 210, fy = 770, fw = 640, fh = 420, dv = fy + 118;
+  for (let i = 0; i < 7; i++) { ctx.fillStyle = '#5A3A1E'; ctx.fillRect(fx + 70 + i * 83 - 3, fy + 20, 6, fh - 40); }
+  const counts = [2, 0, 4, 1, 3, 0, 2];
+  for (let i = 0; i < 7; i++) {
+    const x = fx + 70 + i * 83, col = i % 2 ? RED : MUSTARD;
+    for (let k = 0; k < 2; k++) { const y = fy + 46 + k * 34; paper(() => { ctx.moveTo(x + 34, y); ctx.ellipse(x, y, 34, 16, 0, 0, Math.PI * 2); }, col, { blur: 4, sx: 3, sy: 5 }); }
+    for (let j = 0; j < 5; j++) {
+      const rest = fy + fh - 46 - (4 - j) * 34, up = dv + 38 + j * 34;
+      const y = j < counts[i] ? lerp(rest, up, easeOut(seg(u, 1.0 + i * 0.28, 1.25 + i * 0.28))) : rest;
+      paper(() => { ctx.moveTo(x + 34, y); ctx.ellipse(x, y, 34, 16, 0, 0, Math.PI * 2); }, col, { blur: 4, sx: 3, sy: 5 });
+    }
+  }
+  [[fx, fy, fw, 28], [fx, fy + fh - 28, fw, 28], [fx, fy, 28, fh], [fx + fw - 28, fy, 28, fh], [fx, dv, fw, 20]].forEach(([x, y, w, h]) => paper(rr(x, y, w, h, 6), BROWN, { blur: 6, sx: 4, sy: 6 }));
+  write('đếm bằng những hạt gỗ', 230, 728, seg(u, 1.6, 2.6), { align: 'left' });
+}
+function pascaline(u) {
+  paper(rr(190, 790, 680, 360, 22), '#C99A3B'); paper(rr(190, 790, 680, 92, 22), '#A97D2C', { shadow: false });
+  const v = Math.floor(1642 * easeOut(seg(u, 0.9, 3.2))); const d = String(v).padStart(6, '0');
+  for (let i = 0; i < 6; i++) {
+    const x = 255 + i * 110;
+    paper(rr(x - 30, 808, 60, 58, 6), CREAM, { shadow: false }); txt(d[i], x, 839, { font: SLAB, size: 42, w: 800 });
+    paper(circ(x, 1010, 46), CREAM, { blur: 5, sx: 4, sy: 6 });
+    const rot = +d[i] * Math.PI / 5;
+    for (let k = 0; k < 10; k++) { const a = rot + k * Math.PI / 5; ctx.fillStyle = BLACK; ctx.beginPath(); ctx.arc(x + 32 * Math.cos(a), 1010 + 32 * Math.sin(a), 6, 0, 7); ctx.fill(); }
+    ctx.fillStyle = '#6B4A1A'; ctx.beginPath(); ctx.arc(x, 1010, 9, 0, 7); ctx.fill();
+    ctx.fillStyle = '#6B4A1A'; ctx.beginPath(); ctx.moveTo(x - 8, 1068); ctx.lineTo(x + 8, 1068); ctx.lineTo(x, 1084); ctx.closePath(); ctx.fill();
+  }
+  write('cộng, trừ bằng bánh răng', 220, 735, seg(u, 1.8, 2.8), { align: 'left' });
+}
+function engine(u) {
+  paper(rr(320, 1150, 560, 34, 6), '#5A3A1E');
+  const cols = [440, 610, 780], colors = [TEAL, MUSTARD, RED];
+  cols.forEach((x, c) => {
+    ctx.fillStyle = '#3A2A1A'; ctx.fillRect(x - 5, 770, 10, 380);
+    [830, 950, 1070].forEach((y, r) => { const dir = (c + r) % 2 ? 1 : -1; paper(gearPath(x, y, 56, 12, dir * u * 1.2 + r * 0.3), colors[(c + r) % 3], { rule: 'evenodd', blur: 6, sx: 5, sy: 7 }); });
+  });
+  for (let k = 0; k < 3; k++) {
+    const p = easeOut(seg(u, 0.8 + k * 0.2, 1.1 + k * 0.2)); if (p <= 0) continue;
+    ctx.save(); ctx.translate(lerp(-200, 225, p), 870 + k * 95); ctx.rotate(-0.08 + k * 0.06);
+    paper(rr(-75, -42, 150, 84, 6), CREAM2, { blur: 5, sx: 4, sy: 6 });
+    ctx.fillStyle = BLACK; for (let a = 0; a < 6; a++) for (let b = 0; b < 3; b++) if (hash(k * 31 + a * 7 + b * 3) > 0.45) ctx.fillRect(-60 + a * 22, -28 + b * 22, 10, 14);
+    ctx.restore();
+  }
+  write('thẻ đục lỗ = chương trình', 150, 740, seg(u, 1.6, 2.6), { align: 'left', size: 46 });
+  write('Ada Lovelace, 1843', 150, 1215, seg(u, 2.4, 3.2), { align: 'left', size: 46 });
+}
+function eniac(u, tq) {
+  for (let k = 0; k < 5; k++) {
+    const p = easeOut(seg(u, 0.45 + k * 0.12, 0.75 + k * 0.12)); if (p <= 0) continue;
+    const x = 150 + k * 128, w = 116; ctx.save(); ctx.translate(0, (1 - p) * -500);
+    paper(rr(x, 770, w, 400, 6), NAVY); paper(rr(x + 10, 790, w - 20, 250, 4), '#2B3D5E', { shadow: false, grain: 0.3 });
+    for (let c = 0; c < 4; c++) for (let r = 0; r < 8; r++) {
+      const on = hash(k * 97 + c * 13 + r * 7 + Math.floor(tq * 6)) > 0.42; ctx.save();
+      if (on) { ctx.shadowColor = '#FFB648'; ctx.shadowBlur = 12; } ctx.fillStyle = on ? '#F5A541' : '#5E5440';
+      ctx.beginPath(); ctx.arc(x + 24 + c * 23, 812 + r * 28, 7, 0, 7); ctx.fill(); ctx.restore();
+    }
+    [1080, 1115].forEach((y) => [x + 30, x + 58, x + 86].forEach((cx) => { ctx.fillStyle = CREAM2; ctx.beginPath(); ctx.arc(cx, y, 8, 0, 7); ctx.fill(); }));
+    ctx.restore();
+  }
+  ctx.save(); ctx.strokeStyle = BLACK; ctx.lineWidth = 6; ctx.globalAlpha = seg(u, 1.0, 1.3);
+  for (let k = 0; k < 4; k++) { const x = 208 + k * 128; ctx.beginPath(); ctx.moveTo(x, 1170); ctx.bezierCurveTo(x + 10, 1215, x + 118, 1215, x + 128, 1170); ctx.stroke(); }
+  ctx.restore();
+  const hp = backOut(seg(u, 1.0, 1.3));
+  if (hp > 0) { ctx.save(); ctx.translate(872, 1170); ctx.scale(hp, hp); ctx.translate(-872, -1170);
+    paper(() => { ctx.moveTo(894, 909); ctx.arc(872, 909, 22, 0, Math.PI * 2); ctx.roundRect(850, 935, 44, 125, 18); ctx.roundRect(851, 1045, 18, 125, 8); ctx.roundRect(875, 1045, 18, 125, 8); ctx.roundRect(836, 942, 14, 95, 7); ctx.roundRect(894, 942, 14, 95, 7); }, BLACK, { blur: 6 });
+    ctx.restore(); }
+  write('≈ 27 tấn', 790, 815, seg(u, 1.4, 2.0), { align: 'left', size: 58 });
+  write('gần 18.000 bóng đèn', 150, 728, seg(u, 2.9, 3.8), { align: 'left', size: 48 });
+}
+function transistor(u, tq) {
+  paper(() => { ctx.moveTo(270, 1060); ctx.lineTo(270, 870); ctx.bezierCurveTo(270, 760, 410, 760, 410, 870); ctx.lineTo(410, 1060); ctx.closePath(); }, 'rgba(196,222,223,0.92)');
+  paper(rr(305, 880, 70, 140, 6), '#8E9AA0', { shadow: false, grain: 0.3 });
+  ctx.save(); ctx.strokeStyle = '#FF9A2E'; ctx.shadowColor = '#FFB648'; ctx.shadowBlur = 10 + 6 * hash(Math.floor(tq * 12)); ctx.lineWidth = 4; ctx.beginPath();
+  for (let i = 0; i <= 8; i++) ctx.lineTo(i % 2 ? 330 : 350, 900 + i * 13); ctx.stroke(); ctx.restore();
+  paper(rr(262, 1060, 156, 60, 8), BLACK);
+  ctx.strokeStyle = '#9AA0A6'; ctx.lineWidth = 5; [292, 322, 358, 388].forEach((x) => { ctx.beginPath(); ctx.moveTo(x, 1120); ctx.lineTo(x, 1165); ctx.stroke(); });
+  txt('bóng đèn điện tử', 340, 1205, { font: HAND, w: 400, size: 42 });
+  const ap = easeOut(seg(u, 1.0, 1.4));
+  if (ap > 0) { ctx.save(); ctx.strokeStyle = RED; ctx.lineWidth = 20; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(450, 940); ctx.quadraticCurveTo(540, 900, lerp(450, 610, ap), lerp(940, 990, ap)); ctx.stroke();
+    if (ap >= 1) { ctx.fillStyle = RED; ctx.beginPath(); ctx.moveTo(640, 1004); ctx.lineTo(592, 1012); ctx.lineTo(612, 966); ctx.closePath(); ctx.fill(); } ctx.restore(); }
+  const tp = backOut(seg(u, 1.3, 1.6));
+  if (tp > 0) { ctx.save(); ctx.translate(720, 1060); ctx.scale(tp, tp); ctx.translate(-720, -1060);
+    ctx.strokeStyle = '#9AA0A6'; ctx.lineWidth = 5; [[705, 690], [720, 720], [735, 750]].forEach(([a, b]) => { ctx.beginPath(); ctx.moveTo(a, 1030); ctx.lineTo(a, 1080); ctx.lineTo(b, 1120); ctx.stroke(); });
+    paper(() => { ctx.moveTo(686, 1032); ctx.lineTo(686, 997); ctx.arc(720, 997, 34, Math.PI, 0); ctx.lineTo(754, 1032); ctx.closePath(); }, BLACK, { blur: 5 });
+    ctx.restore(); txt('transistor', 720, 1165, { font: HAND, w: 400, size: 42, alpha: seg(u, 1.5, 1.7) }); }
+  write('nhỏ hơn · mát hơn · bền hơn', 530, 735, seg(u, 1.8, 2.8), {});
+}
+function chip(u) {
+  for (let k = 0; k < 8; k++) { const x = 390 + k * 40; paper(rr(x - 9, 836, 18, 44, 4), '#D9A93B', { blur: 3, sx: 2, sy: 3 }); paper(rr(x - 9, 1040, 18, 44, 4), '#D9A93B', { blur: 3, sx: 2, sy: 3 }); }
+  paper(rr(370, 860, 320, 200, 14), '#24221F');
+  ctx.fillStyle = '#3A3733'; ctx.beginPath(); ctx.arc(370, 960, 20, -Math.PI / 2, Math.PI / 2); ctx.fill();
+  txt('4004', 530, 945, { font: SLAB, w: 800, size: 64, color: '#E9E2D0' }); txt('1971', 530, 1008, { font: SLAB, w: 700, size: 30, color: '#A9A190' });
+  const mp = easeOut(seg(u, 1.0, 1.9)); const mx = lerp(820, 705, mp), my = lerp(780, 905, mp);
+  if (u > 0.8) {
+    ctx.save(); ctx.translate(mx, my);
+    ctx.save(); ctx.rotate(Math.PI / 4); paper(rr(94, -14, 130, 28, 10), BROWN); ctx.restore();
+    ctx.save(); ctx.beginPath(); ctx.arc(0, 0, 100, 0, 7); ctx.clip(); ctx.fillStyle = '#123C3A'; ctx.fillRect(-120, -120, 240, 240);
+    for (let i = 0; i < 70; i++) { ctx.fillStyle = hash(i * 3) > 0.5 ? '#D9A93B' : '#3FA39B'; ctx.fillRect(-120 + hash(i) * 230, -120 + hash(i * 7) * 230, 8 + hash(i * 5) * 40, 4 + hash(i * 9) * 10); }
+    ctx.strokeStyle = 'rgba(255,255,255,0.25)'; ctx.lineWidth = 2; for (let g = -120; g < 120; g += 24) { ctx.beginPath(); ctx.moveTo(g, -120); ctx.lineTo(g, 120); ctx.stroke(); }
+    ctx.fillStyle = 'rgba(255,255,255,0.18)'; ctx.beginPath(); ctx.ellipse(-40, -50, 50, 22, -0.6, 0, 7); ctx.fill(); ctx.restore();
+    ctx.lineWidth = 14; ctx.strokeStyle = '#6B4423'; ctx.beginPath(); ctx.arc(0, 0, 102, 0, 7); ctx.stroke(); ctx.restore();
+  }
+  write('2.300 transistor bên trong', 160, 738, seg(u, 2.0, 3.0), { align: 'left' });
+}
+function pc(u, tq) {
+  paper(rr(290, 730, 480, 330, 22), '#E6D8B8'); paper(rr(325, 760, 410, 250, 10), '#13261A', { shadow: false, grain: 0.25 });
+  const l1 = 'C:\\>', l2 = 'XIN CHÀO 1981', n = Math.floor(clamp((u - 0.9) / 1.6) * l2.length);
+  txt(l1 + (u > 0.9 ? ' ' + l2.slice(0, n) : ''), 355, 810, { font: SLAB, w: 700, size: 36, color: '#62E384', align: 'left', glow: '#3CC864' });
+  if (u > 2.6) txt('C:\\> _', 355, 870, { font: SLAB, w: 700, size: 36, color: '#62E384', align: 'left', glow: '#3CC864', alpha: Math.floor(tq * 2) % 2 ? 1 : 0.25 });
+  paper(rr(500, 1058, 60, 30, 4), '#CDBE9C', { shadow: false }); paper(rr(230, 1086, 600, 72, 10), '#E6D8B8');
+  ctx.fillStyle = '#3A3530'; ctx.fillRect(560, 1112, 180, 10); ctx.fillStyle = Math.floor(tq * 3) % 2 ? '#E5484D' : '#7A2E2E'; ctx.beginPath(); ctx.arc(790, 1120, 7, 0, 7); ctx.fill();
+  paper(rr(250, 1170, 560, 62, 10), '#D8C9A6');
+  for (let r = 0; r < 3; r++) for (let c = 0; c < 16; c++) { ctx.fillStyle = '#F1E8D3'; ctx.fillRect(268 + c * 33.5, 1178 + r * 17, 26, 12); }
+  write('IBM PC', 790, 758, seg(u, 1.6, 2.3), { align: 'left', size: 56 });
+}
+function web(u) {
+  paper(circ(420, 960, 200), TEAL);
+  ctx.save(); ctx.beginPath(); ctx.arc(420, 960, 200, 0, 7); ctx.clip(); const sh = (u * 18) % 400;
+  [[330, 890, 80, 1], [500, 1010, 95, 2], [420, 1110, 50, 3], [250, 1050, 40, 4]].forEach(([cx, cy, r, s]) => { [0, -400].forEach((o) => {
+    ctx.beginPath(); for (let k = 0; k < 10; k++) { const a = k * Math.PI / 5, R = r * (0.65 + 0.5 * hash(s * 11 + k)); ctx.lineTo(cx + sh + o + R * Math.cos(a), cy + R * Math.sin(a)); } ctx.closePath(); ctx.fillStyle = MUSTARD; ctx.fill(); }); });
+  ctx.strokeStyle = 'rgba(246,239,224,0.35)'; ctx.lineWidth = 2; [60, 130, 190].forEach((rx) => { ctx.beginPath(); ctx.ellipse(420, 960, rx, 200, 0, 0, 7); ctx.stroke(); });
+  ctx.restore();
+  const N = [[290, 840], [520, 800], [600, 960], [470, 1090], [290, 1060], [400, 930], [730, 830], [210, 940]];
+  const L = [[0, 5], [5, 1], [1, 6], [5, 2], [2, 3], [3, 4], [4, 7], [7, 0], [5, 3], [6, 2]];
+  ctx.save(); ctx.strokeStyle = RED; ctx.lineWidth = 6; ctx.lineCap = 'round';
+  L.forEach(([a, b], i) => { const p = seg(u, 0.8 + i * 0.13, 1.05 + i * 0.13); if (p <= 0) return; ctx.beginPath(); ctx.moveTo(N[a][0], N[a][1]); ctx.lineTo(lerp(N[a][0], N[b][0], p), lerp(N[a][1], N[b][1], p)); ctx.stroke(); });
+  ctx.restore();
+  N.forEach(([x, y], i) => { const s = backOut(seg(u, 0.6 + i * 0.08, 0.85 + i * 0.08)); if (s > 0) { ctx.save(); ctx.translate(x, y); ctx.scale(s, s); paper(circ(0, 0, 15), CREAM, { blur: 4, sx: 2, sy: 3 }); ctx.strokeStyle = RED; ctx.lineWidth = 5; ctx.beginPath(); ctx.arc(0, 0, 15, 0, 7); ctx.stroke(); ctx.restore(); } });
+  const bp = easeOut(seg(u, 1.2, 1.6));
+  if (bp > 0) { ctx.save(); ctx.translate(0, (1 - bp) * 400);
+    paper(rr(610, 1030, 300, 190, 12), CREAM2); paper(rr(610, 1030, 300, 42, 12), NAVY, { shadow: false });
+    [RED, MUSTARD, LEAF].forEach((c, i) => { ctx.fillStyle = c; ctx.beginPath(); ctx.arc(635 + i * 24, 1051, 7, 0, 7); ctx.fill(); });
+    txt('www', 760, 1115, { font: SLAB, w: 800, size: 54, color: NAVY }); ctx.fillStyle = '#C9BFA8'; ctx.fillRect(650, 1160, 220, 10); ctx.fillRect(650, 1182, 150, 10); ctx.restore(); }
+  write('nối máy tính khắp thế giới', 530, 732, seg(u, 1.8, 2.8), {});
+}
+function phone(u) {
+  paper(rr(400, 700, 260, 520, 40), BLACK);
+  ctx.save(); const g = ctx.createLinearGradient(0, 760, 0, 1160); g.addColorStop(0, NAVY); g.addColorStop(1, TEAL); ctx.fillStyle = g; ctx.beginPath(); ctx.roundRect(418, 760, 224, 400, 10); ctx.fill(); ctx.restore();
+  ctx.fillStyle = '#4A4A4A'; ctx.beginPath(); ctx.roundRect(500, 726, 60, 8, 4); ctx.fill();
+  ctx.strokeStyle = '#5A5A5A'; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(530, 1190, 16, 0, 7); ctx.stroke();
+  const cols = [RED, MUSTARD, TEAL, SKY, CREAM2, LEAF];
+  for (let k = 0; k < 20; k++) { const c = k % 4, r = Math.floor(k / 4); const s = backOut(seg(u, 0.8 + k * 0.07, 1.0 + k * 0.07)); if (s <= 0) continue;
+    const x = 459 + c * 48, y = 800 + r * 66; ctx.save(); ctx.translate(x, y); ctx.scale(s, s); ctx.fillStyle = cols[(k * 5) % 6]; ctx.beginPath(); ctx.roundRect(-18, -18, 36, 36, 9); ctx.fill(); ctx.restore(); }
+  write('cả chiếc máy tính', 132, 820, seg(u, 1.6, 2.3), { align: 'left', size: 40 });
+  write('nằm trong túi áo', 132, 868, seg(u, 2.2, 2.9), { align: 'left', size: 40 });
+  penArrow(300, 915, 390, 960, seg(u, 2.8, 3.1));
+  write('màn hình cảm ứng', 690, 1000, seg(u, 3.0, 3.7), { align: 'left', size: 42 });
+}
+
+// ===== Các thời kỳ =====
+const SCENES = [
+  { t0: 4.0, t1: 8.5, year: 'CỔ ĐẠI', yc: MUSTARD, yt: BLACK, label: 'BÀN TÍNH', draw: abacus },
+  { t0: 8.5, t1: 13.0, year: '1642', yc: RED, yt: CREAM, label: 'MÁY CỘNG CỦA PASCAL', draw: pascaline },
+  { t0: 13.0, t1: 17.5, year: '1837', yc: TEAL, yt: CREAM, label: 'MÁY GIẢI TÍCH · BABBAGE', draw: engine },
+  { t0: 17.5, t1: 23.0, year: '1946', yc: NAVY, yt: CREAM, label: 'ENIAC', draw: eniac },
+  { t0: 23.0, t1: 27.5, year: '1947', yc: MUSTARD, yt: BLACK, label: 'BÓNG BÁN DẪN', draw: transistor },
+  { t0: 27.5, t1: 32.0, year: '1971', yc: RED, yt: CREAM, label: 'BỘ VI XỬ LÝ 4004', draw: chip },
+  { t0: 32.0, t1: 36.5, year: '1981', yc: TEAL, yt: CREAM, label: 'MÁY TÍNH CÁ NHÂN', draw: pc },
+  { t0: 36.5, t1: 41.0, year: '1991', yc: NAVY, yt: CREAM, label: 'WORLD WIDE WEB', draw: web },
+  { t0: 41.0, t1: 45.5, year: '2007', yc: RED, yt: CREAM, label: 'ĐIỆN THOẠI THÔNG MINH', draw: phone },
+];
+const EXIT = 0.34;
+
+function yearPiece(s, x, y, color, tcol, p, rot, size = 170, seed = 1) {
+  if (p <= 0) return; const w = measure(s, `${size}px ${ANTON}`) + 90, h = size * 1.18;
+  const sc = lerp(1.7, 1, easeOut(p)); ctx.save(); ctx.translate(x, y); ctx.rotate(rot * (1 + (1 - p) * 3)); ctx.scale(sc, sc); ctx.globalAlpha = clamp(p * 2);
+  paper(torn(-w / 2, -h / 2, w, h, seed, 12, 20), color); txt(s, 0, 6, { font: ANTON, w: 400, size, color: tcol }); ctx.restore();
+}
+function labelTape(s, y, p, seed) {
+  if (p <= 0) return; const w = measure(s, `800 44px ${SLAB}`) + 70; const vw = w * easeOut(p);
+  ctx.save(); ctx.translate(540, y); ctx.rotate((hash(seed) - 0.5) * 0.04);
+  paper(rr(-w / 2, -36, vw, 72, 8), BLACK, { blur: 6, sx: 4, sy: 6 });
+  ctx.beginPath(); ctx.rect(-w / 2, -40, vw, 80); ctx.clip(); txt(s, 0, 3, { font: SLAB, w: 800, size: 44, color: CREAM, ls: 3 }); ctx.restore();
+}
+function drawScene(sc, i, tq) {
+  const u = tq - sc.t0; const ex = easeIn(seg(tq, sc.t1, sc.t1 + EXIT)); const dir = [[-1, 0], [0, 1], [1, 0]][i % 3];
+  ctx.save(); ctx.translate(dir[0] * 1300 * ex, dir[1] * 1500 * ex);
+  const pc_ = easeOut(seg(u, 0, 0.42)); ctx.save(); ctx.translate(0, (1 - pc_) * -1300);
+  ctx.translate(530, 965); ctx.rotate(i % 2 ? 0.012 : -0.012); ctx.translate(-530, -965);
+  jit(i * 10 + 1, tq, () => { paper(torn(110, 680, 840, 570, i * 97 + 3, 9, 22), CREAM); tape(175, 690, 150, -0.55); tape(885, 690, 150, 0.5); sc.draw(u, tq); });
+  ctx.restore();
+  jit(i * 10 + 5, tq, () => yearPiece(sc.year, 540, 520, sc.yc, sc.yt, seg(u, 0.3, 0.55), i % 2 ? 0.035 : -0.035, sc.year.length > 4 ? 140 : 170, i * 41 + 7));
+  labelTape(sc.label, 1305, seg(u, 0.7, 1.1), i);
+  ctx.restore();
+}
+const YEARS = ['CỔ ĐẠI', '1642', '1837', '1946', '1947', '1971', '1981', '1991', '2007'];
+function timeline(tq) {
+  const p = easeOut(seg(tq, 3.8, 4.2)) * (1 - easeIn(seg(tq, 45.5, 45.85))); if (p <= 0) return;
+  ctx.save(); ctx.translate((1 - p) * -1200, 0);
+  paper(torn(60, 302, 960, 66, 77, 6, 16), CREAM, { blur: 6, sx: 4, sy: 6 });
+  const cur = SCENES.findIndex((s) => tq >= s.t0 && tq < s.t1 + EXIT);
+  YEARS.forEach((y, k) => { const x = 120 + k * 105;
+    txt(y, x, 336, { font: SLAB, w: 800, size: k === 0 ? 22 : 26, color: k === cur ? BLACK : k < cur ? '#6E6350' : '#B3A88F' }); });
+  if (cur >= 0) { const x = 120 + cur * 105; const f = Math.round(tq * 12); ctx.strokeStyle = PEN; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.ellipse(x + (hash(f) - 0.5) * 3, 336, 56, 26, (hash(f + 3) - 0.5) * 0.1, 0, Math.PI * 2); ctx.stroke(); }
+  ctx.restore();
+}
+function halftone(cx, cy, R, color, p) {
+  if (p <= 0) return; ctx.save(); ctx.fillStyle = color; ctx.globalAlpha = 0.6;
+  for (let y = cy - R; y <= cy + R; y += 26) for (let x = cx - R; x <= cx + R; x += 26) { const d = Math.hypot(x - cx, y - cy) / R; if (d < 1) { ctx.beginPath(); ctx.arc(x, y, 10 * (1 - d) * p, 0, 7); ctx.fill(); } }
+  ctx.restore();
+}
+function intro(tq) {
+  const ex = easeIn(seg(tq, 4.0, 4.0 + EXIT)); if (ex >= 1) return;
+  ctx.save(); ctx.translate(0, -1600 * ex);
+  halftone(540, 830, 400, RED, easeOut(seg(tq, 0, 0.4)));
+  const g = backOut(seg(tq, 0.2, 0.45)); if (g > 0) jit(91, tq, () => { ctx.save(); ctx.translate(230, 520); ctx.scale(g, g); paper(gearPath(0, 0, 75, 12, tq * 0.8), MUSTARD, { rule: 'evenodd' }); ctx.restore(); });
+  const c = backOut(seg(tq, 0.35, 0.6)); if (c > 0) jit(92, tq, () => { ctx.save(); ctx.translate(860, 560); ctx.rotate(0.2); ctx.scale(c, c); for (let k = 0; k < 4; k++) { paper(rr(-58 + k * 36, -68, 12, 22, 3), '#D9A93B', { blur: 2, sx: 2, sy: 2 }); paper(rr(-58 + k * 36, 46, 12, 22, 3), '#D9A93B', { blur: 2, sx: 2, sy: 2 }); } paper(rr(-80, -52, 160, 104, 10), '#24221F'); ctx.restore(); });
+  const ph = backOut(seg(tq, 0.5, 0.75)); if (ph > 0) jit(93, tq, () => { ctx.save(); ctx.translate(880, 1290); ctx.rotate(-0.15); ctx.scale(ph * 0.8, ph * 0.8); paper(rr(-60, -110, 120, 220, 20), BLACK); ctx.fillStyle = TEAL; ctx.beginPath(); ctx.roundRect(-50, -85, 100, 165, 6); ctx.fill(); ctx.restore(); });
+  const b = backOut(seg(tq, 0.65, 0.9)); if (b > 0) jit(94, tq, () => { ctx.save(); ctx.translate(210, 1190); ctx.scale(b, b); [[-50, 0, RED], [0, 0, MUSTARD], [50, 0, RED], [25, -40, MUSTARD]].forEach(([x, y, col]) => paper(() => { ctx.moveTo(x + 32, y); ctx.ellipse(x, y, 32, 16, 0, 0, 7); }, col, { blur: 4, sx: 3, sy: 5 })); ctx.restore(); });
+  jit(95, tq, () => yearPiece('LỊCH SỬ', 540, 730, MUSTARD, BLACK, seg(tq, 0.3, 0.55), -0.05, 160, 11));
+  jit(96, tq, () => yearPiece('MÁY TÍNH', 540, 940, RED, CREAM, seg(tq, 0.6, 0.85), 0.04, 180, 23));
+  write('từ bàn tính đến smartphone', 540, 1110, seg(tq, 1.1, 2.2), { color: NAVY, size: 62 });
+  ctx.restore();
+}
+function outro(tq) {
+  if (tq < 45.5) return;
+  const u = tq - 45.5; const ex = easeIn(seg(tq, 48.3, 48.3 + EXIT));
+  if (ex < 1) {
+    ctx.save(); ctx.translate(-1300 * ex, 0);
+    const pc_ = easeOut(seg(u, 0, 0.42)); ctx.save(); ctx.translate(0, (1 - pc_) * -1300);
+    jit(201, tq, () => { paper(torn(110, 680, 840, 570, 999, 9, 22), CREAM); tape(175, 690, 150, -0.55); tape(885, 690, 150, 0.5);
+      for (let k = 0; k < 4; k++) { const x = 160 + k * 84; paper(rr(x, 860, 76, 260, 5), NAVY, { blur: 6 }); for (let r = 0; r < 6; r++) for (let c = 0; c < 3; c++) { ctx.fillStyle = hash(k * 9 + r * 3 + c + Math.floor(tq * 6)) > 0.45 ? '#F5A541' : '#5E5440'; ctx.beginPath(); ctx.arc(x + 18 + c * 20, 885 + r * 24, 5, 0, 7); ctx.fill(); } }
+      txt('ENIAC ≈ 27 tấn', 310, 1185, { font: HAND, w: 400, size: 50 });
+      paper(rr(690, 1000, 74, 140, 14), BLACK); ctx.fillStyle = TEAL; ctx.beginPath(); ctx.roundRect(698, 1014, 58, 106, 4); ctx.fill();
+      txt('≈ 200 g', 727, 1185, { font: HAND, w: 400, size: 50 });
+      const sp = seg(u, 1.4, 1.7); if (sp > 0) { const s = lerp(1.6, 1, easeOut(sp)); ctx.save(); ctx.translate(660, 830); ctx.rotate(-0.12); ctx.scale(s, s); ctx.globalAlpha = 0.92 * clamp(sp * 2);
+        ctx.strokeStyle = RED; ctx.lineWidth = 7; ctx.strokeRect(-250, -78, 500, 156); ctx.lineWidth = 3; ctx.strokeRect(-238, -66, 476, 132);
+        txt('MẠNH HƠN', 0, -26, { font: ANTON, w: 400, size: 54, color: RED }); txt('HÀNG TRIỆU LẦN', 0, 34, { font: ANTON, w: 400, size: 54, color: RED }); ctx.restore(); } });
+    ctx.restore();
+    jit(202, tq, () => yearPiece('HÔM NAY', 540, 520, MUSTARD, BLACK, seg(u, 0.3, 0.55), -0.035, 140, 333));
+    ctx.restore();
+  }
+  if (tq >= 48.3) {
+    const v = tq - 48.3; const p = easeOut(seg(v, 0, 0.42));
+    ctx.save(); ctx.translate(0, (1 - p) * -1300);
+    jit(301, tq, () => { paper(torn(110, 640, 860, 560, 4242, 10, 22), NAVY); tape(200, 650, 170, -0.5); tape(880, 650, 170, 0.45);
+      txt('TẬP SAU', 540, 770, { font: ANTON, w: 400, size: 120, color: MUSTARD }); txt('Lịch sử Internet', 540, 900, { font: SLAB, w: 800, size: 72, color: CREAM }); });
+    ctx.restore();
+    jit(302, tq, () => yearPiece('ĐĂNG KÝ', 540, 1080, RED, CREAM, seg(v, 0.6, 0.85), 0.03, 96, 515));
+    write('để không bỏ lỡ nhé!', 540, 1250, seg(v, 1.1, 1.9), { color: NAVY, size: 56 });
+  }
+}
+function caption(t) {
+  const c = CAPS.find(([a, b]) => t >= a && t < b); if (!c) return; const idx = CAPS.indexOf(c);
+  ctx.save(); ctx.font = `700 48px ${SANS}`; const words = c[2].split(' '); const lines = []; let cur = '';
+  for (const w of words) { const s = cur ? cur + ' ' + w : w; if (ctx.measureText(s).width > 860 && cur) { lines.push(cur); cur = w; } else cur = s; } if (cur) lines.push(cur);
+  const bw = Math.max(...lines.map((l) => ctx.measureText(l).width)) + 70, bh = lines.length * 62 + 40; ctx.restore();
+  const y0 = 1470 - bh / 2;
+  paper(torn(540 - bw / 2, y0, bw, bh, idx * 13 + 5, 7, 16), CREAM, { blur: 6, sx: 4, sy: 6 });
+  lines.forEach((l, i) => txt(l, 540, y0 + 20 + 62 * (i + 0.5) + 2, { size: 48, w: 700 }));
+}
+
+window.renderAt = (t) => {
+  const tq = stepT(t);
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.filter = 'none'; ctx.globalCompositeOperation = 'source-over';
+  ctx.drawImage(bgCv, 0, 0);
+  intro(tq);
+  SCENES.forEach((sc, i) => { if (tq >= sc.t0 && tq < sc.t1 + EXIT) drawScene(sc, i, tq); });
+  outro(tq);
+  timeline(tq);
+  jit(7, tq, () => { tape(540, 210, 380, -0.02, 62); txt(CHANNEL, 540, 212, { font: SLAB, w: 800, size: 34, color: BLACK, ls: 2 }); });
+  caption(t);
+  ctx.fillStyle = 'rgba(27,26,24,0.15)'; ctx.fillRect(0, H - 10, W, 10); ctx.fillStyle = RED; ctx.fillRect(0, H - 10, W * clamp(t / window.DURATION), 10);
+};
+window.renderAt(0);
+</script>
+</body></html>
