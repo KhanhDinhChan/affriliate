@@ -1,6 +1,9 @@
 # Lịch sử của máy tính: phong cách giấy cắt dán
 
-Video ngắn khổ dọc 9:16, dài 51 giây, dùng cho YouTube Shorts và TikTok (dự án 2, kênh xã hội). Thành phẩm: `out/lich-su-may-tinh.mp4`, âm lượng khoảng -15 LUFS.
+Video ngắn khổ dọc 9:16 dùng cho YouTube Shorts và TikTok (dự án 2, kênh xã hội).
+
+- **`out/lich-su-may-tinh.mp4`:** bản 51 giây, chỉ có hình vẽ, âm lượng khoảng -15 LUFS.
+- **Bản mới, dài 64,5 giây:** mỗi thời kỳ mở đầu bằng **ảnh thật** in kiểu polaroid. Ảnh hiện khoảng 1,5 giây rồi thu nhỏ, ghim cạnh số năm, sau đó hình vẽ diễn tiếp. Bản này đang chờ ảnh: xem danh sách và quy định giấy phép trong [`anh/README.md`](anh/README.md).
 
 ## Phong cách
 

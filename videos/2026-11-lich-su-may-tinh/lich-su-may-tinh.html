@@ -9,7 +9,7 @@
 </head><body><canvas id="c"></canvas>
 <script>
 window.SIZE = [1080, 1920];
-window.DURATION = 51;
+window.DURATION = 64.5; // tính lại theo SCENES ở dưới
 const CHANNEL = '[TÊN KÊNH]';
 window.ready = Promise.all(['80px Anton', '800 40px "Roboto Slab"', '60px "Patrick Hand"', '700 40px "Be Vietnam Pro"'].map((f) => document.fonts.load(f))).catch(() => {});
 
@@ -19,21 +19,7 @@ const BG = '#E6DAC2', CREAM = '#F6EFE0', CREAM2 = '#EFE5CF', RED = '#D9483B', MU
 const ANTON = 'Anton, "Be Vietnam Pro", sans-serif', SLAB = '"Roboto Slab", serif', HAND = '"Patrick Hand", sans-serif', SANS = '"Be Vietnam Pro", sans-serif';
 
 // ===== Lời dẫn / phụ đề =====
-const CAPS = [
-  [0.2, 4.0, 'Từ hạt bàn tính đến chiếc điện thoại trong túi bạn.'],
-  [4.0, 8.5, 'Từ thời cổ đại, người ta đã tính toán bằng bàn tính.'],
-  [8.5, 13.0, 'Năm 1642, Blaise Pascal chế tạo máy cộng bằng bánh răng.'],
-  [13.0, 15.3, 'Năm 1837, Charles Babbage thiết kế Máy giải tích.'],
-  [15.3, 17.5, 'Ada Lovelace viết thuật toán đầu tiên cho cỗ máy này.'],
-  [17.5, 20.3, 'Năm 1946, ENIAC ra đời: nặng khoảng 27 tấn,'],
-  [20.3, 23.0, 'dùng gần 18.000 bóng đèn điện tử, chiếm cả một căn phòng.'],
-  [23.0, 27.5, 'Năm 1947, bóng bán dẫn ra đời: nhỏ hơn, mát hơn, bền hơn.'],
-  [27.5, 32.0, 'Năm 1971, bộ vi xử lý thương mại đầu tiên chứa 2.300 bóng bán dẫn.'],
-  [32.0, 36.5, 'Năm 1981, máy tính cá nhân bắt đầu vào từng nhà.'],
-  [36.5, 41.0, 'Năm 1991, World Wide Web nối máy tính khắp thế giới.'],
-  [41.0, 45.5, 'Năm 2007, smartphone cảm ứng bùng nổ: máy tính gọn trong túi.'],
-  [45.5, 48.3, 'Từ 27 tấn xuống khoảng 200 gam, mà mạnh hơn hàng triệu lần.'],
-];
+// Phụ đề (CAPS) được dựng từ SCENES ở dưới, để mốc thời gian luôn khớp khi đổi độ dài từng thời kỳ.
 
 const cv = document.getElementById('c'); cv.width = 1080; cv.height = 1920; const ctx = cv.getContext('2d');
 const W = 1080, H = 1920;
@@ -44,6 +30,7 @@ const lerp = (a, b, p) => a + (b - a) * p;
 const seg = (t, a, b) => clamp((t - a) / (b - a));
 const easeOut = (x) => 1 - Math.pow(1 - clamp(x), 3);
 const easeIn = (x) => Math.pow(clamp(x), 3);
+const easeInOut = (x) => { x = clamp(x); return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; };
 const backOut = (x) => { x = clamp(x); const c = 1.7; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); };
 const hash = (n) => { const v = Math.sin(n * 127.1 + 311.7) * 43758.5453; return v - Math.floor(v); };
 const stepT = (t) => Math.floor(t * 12) / 12; // stop-motion 12 hình/giây
@@ -269,17 +256,78 @@ function phone(u) {
 }
 
 // ===== Các thời kỳ =====
+// Mỗi thời kỳ mở đầu bằng 1 ảnh thật (PHOTO giây), rồi ảnh thu nhỏ ghim cạnh số năm và hình vẽ diễn tiếp.
+// Ảnh đặt trong thư mục anh/ đúng tên file; thiếu file thì hiện ô "đang chờ ảnh". credit: ghi nguồn + giấy phép.
+const PHOTO = 1.5;
 const SCENES = [
-  { t0: 4.0, t1: 8.5, year: 'CỔ ĐẠI', yc: MUSTARD, yt: BLACK, label: 'BÀN TÍNH', draw: abacus },
-  { t0: 8.5, t1: 13.0, year: '1642', yc: RED, yt: CREAM, label: 'MÁY CỘNG CỦA PASCAL', draw: pascaline },
-  { t0: 13.0, t1: 17.5, year: '1837', yc: TEAL, yt: CREAM, label: 'MÁY GIẢI TÍCH · BABBAGE', draw: engine },
-  { t0: 17.5, t1: 23.0, year: '1946', yc: NAVY, yt: CREAM, label: 'ENIAC', draw: eniac },
-  { t0: 23.0, t1: 27.5, year: '1947', yc: MUSTARD, yt: BLACK, label: 'BÓNG BÁN DẪN', draw: transistor },
-  { t0: 27.5, t1: 32.0, year: '1971', yc: RED, yt: CREAM, label: 'BỘ VI XỬ LÝ 4004', draw: chip },
-  { t0: 32.0, t1: 36.5, year: '1981', yc: TEAL, yt: CREAM, label: 'MÁY TÍNH CÁ NHÂN', draw: pc },
-  { t0: 36.5, t1: 41.0, year: '1991', yc: NAVY, yt: CREAM, label: 'WORLD WIDE WEB', draw: web },
-  { t0: 41.0, t1: 45.5, year: '2007', yc: RED, yt: CREAM, label: 'ĐIỆN THOẠI THÔNG MINH', draw: phone },
+  { dur: 6, year: 'CỔ ĐẠI', yc: MUSTARD, yt: BLACK, label: 'BÀN TÍNH', draw: abacus,
+    photo: { file: 'anh/01-ban-tinh.jpg', label: 'Bàn tính', credit: '' },
+    caps: [[0, 6, 'Từ thời cổ đại, người ta đã tính toán bằng bàn tính.']] },
+  { dur: 6, year: '1642', yc: RED, yt: CREAM, label: 'MÁY CỘNG CỦA PASCAL', draw: pascaline,
+    photo: { file: 'anh/02-pascal.jpg', label: 'Blaise Pascal', credit: '' },
+    caps: [[0, 6, 'Năm 1642, Blaise Pascal chế tạo máy cộng bằng bánh răng.']] },
+  { dur: 6, year: '1837', yc: TEAL, yt: CREAM, label: 'MÁY GIẢI TÍCH · BABBAGE', draw: engine,
+    photo: { file: 'anh/03-babbage.jpg', label: 'Charles Babbage', credit: '' },
+    caps: [[0, 3.2, 'Năm 1837, Charles Babbage thiết kế Máy giải tích.'], [3.2, 6, 'Ada Lovelace viết thuật toán đầu tiên cho cỗ máy này.']] },
+  { dur: 7, year: '1946', yc: NAVY, yt: CREAM, label: 'ENIAC', draw: eniac,
+    photo: { file: 'anh/04-eniac.jpg', label: 'ENIAC, 1946', credit: '' },
+    caps: [[0, 3.6, 'Năm 1946, ENIAC ra đời: nặng khoảng 27 tấn,'], [3.6, 7, 'dùng gần 18.000 bóng đèn điện tử, chiếm cả một căn phòng.']] },
+  { dur: 6, year: '1947', yc: MUSTARD, yt: BLACK, label: 'BÓNG BÁN DẪN', draw: transistor,
+    photo: { file: 'anh/05-transistor.jpg', label: 'Transistor đầu tiên (bản sao)', credit: '' },
+    caps: [[0, 6, 'Năm 1947, bóng bán dẫn ra đời: nhỏ hơn, mát hơn, bền hơn.']] },
+  { dur: 6, year: '1971', yc: RED, yt: CREAM, label: 'BỘ VI XỬ LÝ 4004', draw: chip,
+    photo: { file: 'anh/06-intel-4004.jpg', label: 'Intel 4004', credit: '' },
+    caps: [[0, 6, 'Năm 1971, bộ vi xử lý thương mại đầu tiên chứa 2.300 bóng bán dẫn.']] },
+  { dur: 6, year: '1981', yc: TEAL, yt: CREAM, label: 'MÁY TÍNH CÁ NHÂN', draw: pc,
+    photo: { file: 'anh/07-ibm-pc.jpg', label: 'IBM PC 5150', credit: '' },
+    caps: [[0, 6, 'Năm 1981, máy tính cá nhân bắt đầu vào từng nhà.']] },
+  { dur: 6, year: '1991', yc: NAVY, yt: CREAM, label: 'WORLD WIDE WEB', draw: web,
+    photo: { file: 'anh/08-may-chu-web.jpg', label: 'Máy chủ web đầu tiên', credit: '' },
+    caps: [[0, 6, 'Năm 1991, World Wide Web nối máy tính khắp thế giới.']] },
+  { dur: 6, year: '2007', yc: RED, yt: CREAM, label: 'ĐIỆN THOẠI THÔNG MINH', draw: phone,
+    photo: { file: 'anh/09-smartphone.jpg', label: 'Smartphone đời đầu', credit: '' },
+    caps: [[0, 6, 'Năm 2007, smartphone cảm ứng bùng nổ: máy tính gọn trong túi.']] },
 ];
+let acc_ = 4.0; SCENES.forEach((sc) => { sc.t0 = acc_; sc.t1 = acc_ + sc.dur; acc_ = sc.t1; });
+const OUT0 = acc_, CTA0 = OUT0 + 2.8;
+window.DURATION = CTA0 + 2.7;
+const CAPS = [[0.2, 4.0, 'Từ hạt bàn tính đến chiếc điện thoại trong túi bạn.'],
+  ...SCENES.flatMap((sc) => sc.caps.map(([a, b, c]) => [sc.t0 + a, sc.t0 + b, c])),
+  [OUT0, CTA0, 'Từ 27 tấn xuống khoảng 200 gam, mà mạnh hơn hàng triệu lần.']];
+const IMGS = {};
+window.ready = Promise.all([window.ready, ...SCENES.map((sc) => new Promise((res) => {
+  const im = new Image(); im.onload = () => { IMGS[sc.photo.file] = im; res(); }; im.onerror = () => res(); im.src = sc.photo.file; }))]);
+
+// Ảnh in kiểu polaroid: viền trắng, tông giấy cũ, vân giấy, băng dính; thiếu ảnh thì hiện ô chờ
+function polaroid(ph, cx, cy, s, rot, alpha) {
+  const W0 = 600, H0 = 480, B = 18, BB = 74, ix = -W0 / 2 + B, iy = -H0 / 2 + B, iw = W0 - 2 * B, ih = H0 - B - BB;
+  ctx.save(); ctx.translate(cx, cy); ctx.rotate(rot); ctx.scale(s, s); ctx.globalAlpha = alpha;
+  paper(rr(-W0 / 2, -H0 / 2, W0, H0, 4), '#FBF8F1', { blur: 16, sx: 9, sy: 13, grain: 0.3 });
+  const im = IMGS[ph.file];
+  ctx.save(); ctx.beginPath(); ctx.rect(ix, iy, iw, ih); ctx.clip();
+  if (im) {
+    const k = Math.max(iw / im.width, ih / im.height), dw = im.width * k, dh = im.height * k;
+    ctx.drawImage(im, ix + (iw - dw) / 2 + (ph.dx || 0) * dw, iy + (ih - dh) / 2 + (ph.dy || 0) * dh, dw, dh);
+    ctx.globalCompositeOperation = 'multiply'; ctx.fillStyle = 'rgba(240,225,195,0.32)'; ctx.fillRect(ix, iy, iw, ih);
+    ctx.globalAlpha = alpha * 0.35; ctx.fillStyle = GRAIN; ctx.fillRect(ix, iy, iw, ih);
+  } else {
+    ctx.fillStyle = '#D3CAB7'; ctx.fillRect(ix, iy, iw, ih); ctx.strokeStyle = 'rgba(0,0,0,0.08)'; ctx.lineWidth = 12;
+    for (let k = -ih; k < iw; k += 40) { ctx.beginPath(); ctx.moveTo(ix + k, iy + ih); ctx.lineTo(ix + k + ih, iy); ctx.stroke(); }
+    txt('ẢNH THẬT', 0, iy + ih / 2 - 28, { font: ANTON, w: 400, size: 70, color: '#8A7F6A' });
+    txt('đang chờ ảnh: ' + ph.file.replace('anh/', ''), 0, iy + ih / 2 + 42, { size: 28, w: 700, color: '#8A7F6A' });
+  }
+  ctx.restore();
+  txt(ph.label, ph.credit ? -W0 / 2 + 30 : 0, H0 / 2 - BB / 2 - (ph.credit ? 6 : 0), { font: HAND, w: 400, size: 46, color: NAVY, max: W0 - 60, align: ph.credit ? 'left' : 'center' });
+  if (ph.credit) txt(ph.credit, W0 / 2 - 24, H0 / 2 - 16, { size: 18, w: 600, color: '#8C8475', align: 'right', max: W0 - 60 });
+  ctx.restore();
+  ctx.save(); ctx.translate(cx, cy); ctx.rotate(rot); ctx.scale(s, s); ctx.globalAlpha = alpha; tape(0, -H0 / 2 + 2, 180, -0.04); ctx.restore();
+}
+function photoPiece(sc, i, u, tq) {
+  if (!sc.photo) return; const pin = seg(u, 0.6, 0.9); if (pin <= 0) return;
+  const d = easeOut(pin), m = easeInOut(seg(u, PHOTO - 0.05, PHOTO + 0.35));
+  const cx = lerp(540, 875, m), cy = lerp(960, 540, m) - (1 - d) * 300, s = lerp(lerp(1.25, 1, d), 0.4, m), rot = lerp(-0.03, 0.07, m);
+  jit(i * 10 + 8, tq, () => polaroid(sc.photo, cx, cy, s, rot, clamp(pin * 2)));
+}
 const EXIT = 0.34;
 
 function yearPiece(s, x, y, color, tcol, p, rot, size = 170, seed = 1) {
@@ -298,15 +346,16 @@ function drawScene(sc, i, tq) {
   ctx.save(); ctx.translate(dir[0] * 1300 * ex, dir[1] * 1500 * ex);
   const pc_ = easeOut(seg(u, 0, 0.42)); ctx.save(); ctx.translate(0, (1 - pc_) * -1300);
   ctx.translate(530, 965); ctx.rotate(i % 2 ? 0.012 : -0.012); ctx.translate(-530, -965);
-  jit(i * 10 + 1, tq, () => { paper(torn(110, 680, 840, 570, i * 97 + 3, 9, 22), CREAM); tape(175, 690, 150, -0.55); tape(885, 690, 150, 0.5); sc.draw(u, tq); });
+  jit(i * 10 + 1, tq, () => { paper(torn(110, 680, 840, 570, i * 97 + 3, 9, 22), CREAM); tape(175, 690, 150, -0.55); tape(885, 690, 150, 0.5); sc.draw(u - PHOTO, tq); });
   ctx.restore();
+  photoPiece(sc, i, u, tq);
   jit(i * 10 + 5, tq, () => yearPiece(sc.year, 540, 520, sc.yc, sc.yt, seg(u, 0.3, 0.55), i % 2 ? 0.035 : -0.035, sc.year.length > 4 ? 140 : 170, i * 41 + 7));
   labelTape(sc.label, 1305, seg(u, 0.7, 1.1), i);
   ctx.restore();
 }
 const YEARS = ['CỔ ĐẠI', '1642', '1837', '1946', '1947', '1971', '1981', '1991', '2007'];
 function timeline(tq) {
-  const p = easeOut(seg(tq, 3.8, 4.2)) * (1 - easeIn(seg(tq, 45.5, 45.85))); if (p <= 0) return;
+  const p = easeOut(seg(tq, 3.8, 4.2)) * (1 - easeIn(seg(tq, OUT0, OUT0 + 0.35))); if (p <= 0) return;
   ctx.save(); ctx.translate((1 - p) * -1200, 0);
   paper(torn(60, 302, 960, 66, 77, 6, 16), CREAM, { blur: 6, sx: 4, sy: 6 });
   const cur = SCENES.findIndex((s) => tq >= s.t0 && tq < s.t1 + EXIT);
@@ -335,8 +384,8 @@ function intro(tq) {
   ctx.restore();
 }
 function outro(tq) {
-  if (tq < 45.5) return;
-  const u = tq - 45.5; const ex = easeIn(seg(tq, 48.3, 48.3 + EXIT));
+  if (tq < OUT0) return;
+  const u = tq - OUT0; const ex = easeIn(seg(tq, CTA0, CTA0 + EXIT));
   if (ex < 1) {
     ctx.save(); ctx.translate(-1300 * ex, 0);
     const pc_ = easeOut(seg(u, 0, 0.42)); ctx.save(); ctx.translate(0, (1 - pc_) * -1300);
@@ -352,8 +401,8 @@ function outro(tq) {
     jit(202, tq, () => yearPiece('HÔM NAY', 540, 520, MUSTARD, BLACK, seg(u, 0.3, 0.55), -0.035, 140, 333));
     ctx.restore();
   }
-  if (tq >= 48.3) {
-    const v = tq - 48.3; const p = easeOut(seg(v, 0, 0.42));
+  if (tq >= CTA0) {
+    const v = tq - CTA0; const p = easeOut(seg(v, 0, 0.42));
     ctx.save(); ctx.translate(0, (1 - p) * -1300);
     jit(301, tq, () => { paper(torn(110, 640, 860, 560, 4242, 10, 22), NAVY); tape(200, 650, 170, -0.5); tape(880, 650, 170, 0.45);
       txt('TẬP SAU', 540, 770, { font: ANTON, w: 400, size: 120, color: MUSTARD }); txt('Lịch sử Internet', 540, 900, { font: SLAB, w: 800, size: 72, color: CREAM }); });
