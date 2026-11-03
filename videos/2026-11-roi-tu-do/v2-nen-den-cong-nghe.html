@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8">
+<!-- PHONG CÁCH · NỀN ĐEN CÔNG NGHỆ — tuyến HIỂU BẢN CHẤT (chủ đề lớn, "điện ảnh").
+     Nền gần đen, nét vàng ấm mảnh có quầng sáng, chữ có chân hiện dần từ mờ sang rõ, hạt sáng trôi.
+     Gia tốc vẫn dùng màu tím của bảng đại lượng; cam chỉ dùng cho một câu kết luận. -->
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;700;800&family=Pangolin&family=Playfair+Display:ital,wght@0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>html,body{margin:0;background:#000}canvas{display:block}</style>
+</head><body><canvas id="c"></canvas>
+<script src="lib.js"></script>
+<script src="fx.js"></script>
+<script>
+window.SIZE = [1080, 1920];
+window.DURATION = 20;
+window.ready = Promise.all([window.ready, document.fonts.load('700 80px "Playfair Display"'), document.fonts.load('italic 400 40px "Playfair Display"')]);
+
+const GOLD = '#E5CF95', CREAM = '#F2EBDD', DIM = '#8C8676', BG = '#0A0A0C';
+const SERIF = '"Playfair Display", Georgia, serif';
+const CAPS = [
+  [0.3, 4.2, 'Năm 1971, trên Mặt Trăng, có một thí nghiệm rất nổi tiếng.'],
+  [4.2, 8.6, 'David Scott thả cùng lúc một chiếc búa và một chiếc lông chim.'],
+  [8.6, 12.6, 'Mặt Trăng không có không khí, nên cả hai chạm đất cùng lúc.'],
+  [12.6, 14.9, 'Chỉ là rơi chậm hơn, vì g trên Mặt Trăng nhỏ hơn khoảng 6 lần.'],
+  [14.9, 17.1, 'Cùng độ cao 1,5 m: 0,55 giây trên Trái Đất, 1,36 giây trên Mặt Trăng.'],
+];
+
+const ctx = setupCanvas();
+const [W, H] = window.SIZE;
+const HORIZON = 1330, R = 1900;
+
+// Chữ hiện từ mờ sang rõ, giãn chữ thu lại
+function focusText(s, x, y, p, o = {}) {
+  if (p <= 0) return; p = easeOut(p);
+  ctx.save(); ctx.filter = `blur(${(1 - p) * 16}px)`; ctx.letterSpacing = `${(1 - p) * 14 + (o.track || 0)}px`;
+  text(ctx, s, x, y, { size: o.size || 80, weight: o.weight || 700, font: o.font || SERIF, color: o.color || CREAM, alpha: p * (o.alpha ?? 1), maxWidth: o.maxWidth });
+  ctx.restore();
+}
+// Nền: sao nhấp nháy, quầng sáng chân trời, bề mặt Mặt Trăng
+const stars = Array.from({ length: 150 }, (_, i) => [hash(i) * W, hash(i * 3 + 1) * HORIZON * 0.95, 0.6 + hash(i * 7) * 1.8, hash(i * 11) * 6]);
+function background(t, dim) {
+  ctx.fillStyle = BG; ctx.fillRect(0, 0, W, H);
+  const glow = ctx.createRadialGradient(W / 2, HORIZON, 50, W / 2, HORIZON, 900);
+  glow.addColorStop(0, 'rgba(229,207,149,0.16)'); glow.addColorStop(1, 'rgba(229,207,149,0)'); ctx.fillStyle = glow; ctx.fillRect(0, 0, W, H);
+  stars.forEach(([x, y, r, ph]) => { ctx.globalAlpha = 0.25 + 0.55 * Math.abs(Math.sin(t * 0.9 + ph)); ctx.fillStyle = CREAM; ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill(); });
+  ctx.globalAlpha = 1;
+  // Trái Đất nhỏ trên trời (vành vàng + phần tối)
+  const ep = easeOut(seg(t, 0.8, 2.0)) * (1 - dim * 0.6);
+  if (ep > 0) { ctx.save(); ctx.globalAlpha = ep; ctx.strokeStyle = GOLD; ctx.lineWidth = 2.5; ctx.shadowColor = GOLD; ctx.shadowBlur = 16;
+    ctx.beginPath(); ctx.arc(850, 410, 44, 0, 7); ctx.stroke(); ctx.fillStyle = 'rgba(229,207,149,0.22)'; ctx.beginPath(); ctx.arc(850, 410, 44, -Math.PI / 2, Math.PI / 2); ctx.ellipse(850, 410, 16, 44, 0, Math.PI / 2, -Math.PI / 2); ctx.fill(); ctx.restore(); }
+  // Bề mặt: cung tròn lớn vẽ dần từ giữa ra hai bên
+  const sp = easeInOut(seg(t, 0.2, 1.8)); const half = 0.32 * sp;
+  ctx.save(); ctx.fillStyle = '#121216'; ctx.beginPath(); ctx.arc(W / 2, HORIZON + R, R, 0, 7); ctx.fill();
+  ctx.strokeStyle = GOLD; ctx.lineWidth = 2.5; ctx.shadowColor = GOLD; ctx.shadowBlur = 18;
+  ctx.beginPath(); ctx.arc(W / 2, HORIZON + R, R, -Math.PI / 2 - half, -Math.PI / 2 + half); ctx.stroke(); ctx.restore();
+  ctx.save(); ctx.strokeStyle = 'rgba(229,207,149,0.28)'; ctx.lineWidth = 2;
+  [[170, 1395, 70, 12], [560, 1460, 120, 18], [880, 1410, 60, 10], [360, 1560, 90, 14], [760, 1610, 140, 20]].forEach(([x, y, rx, ry], i) => {
+    const k = seg(t, 1.0 + i * 0.12, 1.6 + i * 0.12); if (k > 0) { ctx.globalAlpha = k; ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, 7); ctx.stroke(); } });
+  ctx.restore();
+  motes(ctx, t, { n: 46, color: GOLD, alpha: 0.45 * (1 - dim * 0.5) });
+}
+// Búa và lông chim — nét vàng có quầng sáng
+function hammer(x, y, p, t) {
+  sketchStrokes(ctx, [rectPts(x - 64, y, 128, 42, 5), [...linePts(x - 10, y + 42, x - 10, y + 176, 6), ...linePts(x - 10, y + 176, x + 10, y + 176, 2).slice(1), ...linePts(x + 10, y + 176, x + 10, y + 42, 6).slice(1)]], p, { t, seed: 2, color: GOLD, width: 3.5, amp: 0.6, glow: GOLD });
+}
+function feather(x, y, p, t) {
+  const s = [quadPts(x + 6, y + 180, x - 12, y + 90, x + 18, y - 4, 16), quadPts(x + 16, y + 2, x - 68, y + 56, x - 2, y + 150, 16), quadPts(x + 20, y + 2, x + 70, y + 76, x + 6, y + 154, 16)];
+  for (let i = 0; i < 5; i++) { const yy = y + 30 + i * 24; s.push(linePts(x + 2 - i * 2, yy, x - 28 + i * 3, yy - 18, 3)); s.push(linePts(x + 4 - i * 2, yy + 6, x + 34 - i * 3, yy - 12, 3)); }
+  sketchStrokes(ctx, s, p, { t, seed: 4, color: GOLD, width: 3.5, amp: 0.6, glow: GOLD });
+}
+function leader(x1, y1, x2, y2, label, p, alignLeft) {
+  if (p <= 0) return; ctx.save(); ctx.globalAlpha = p; ctx.strokeStyle = 'rgba(229,207,149,0.7)'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(lerp(x1, x2, easeOut(p)), lerp(y1, y2, easeOut(p))); ctx.stroke();
+  ctx.fillStyle = GOLD; ctx.beginPath(); ctx.arc(x1, y1, 5, 0, 7); ctx.fill(); ctx.restore();
+  text(ctx, label, x2 + (alignLeft ? 12 : -12), y2, { size: 36, weight: 600, color: GOLD, align: alignLeft ? 'left' : 'right', alpha: seg(p, 0.5, 1) });
+}
+
+const T0 = 8.9, TF = 2.0, DROP = 314, G = 2 * DROP / (TF * TF);
+const fall = (t) => { const u = clamp(t - T0, 0, TF); return 0.5 * G * u * u; };
+
+window.renderAt = (t) => {
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.filter = 'none';
+  const dim = easeInOut(seg(t, 12.6, 13.2));
+  // máy quay đẩy vào rất chậm
+  const z = 1 + 0.035 * (t / 20); ctx.save(); ctx.translate(W / 2, H * 0.55); ctx.scale(z, z); ctx.translate(-W / 2, -H * 0.55);
+  background(t, dim);
+  // CẢNH 1 · Ngày, nơi
+  const out1 = 1 - seg(t, 3.9, 4.4);
+  if (t < 4.4) {
+    focusText('2 · 8 · 1971', W / 2, 560, seg(t, 0.3, 1.1), { size: 40, font: BRAND.font, weight: 600, color: GOLD, track: 10, alpha: out1 });
+    focusText('Mặt Trăng', W / 2, 680, seg(t, 0.6, 1.7), { size: 150, alpha: out1 });
+    focusText('APOLLO 15', W / 2, 800, seg(t, 1.4, 2.2), { size: 40, font: BRAND.font, weight: 600, color: DIM, track: 14, alpha: out1 });
+  }
+  // CẢNH 2–3 · Thả và rơi
+  const vis23 = 1 - dim;
+  if (t > 4.2 && vis23 > 0) {
+    ctx.save(); ctx.globalAlpha = vis23;
+    focusText('David Scott thả cùng lúc', W / 2, 540, seg(t, 4.5, 5.3) * (1 - seg(t, 10.7, 11.0)), { size: 68 });
+    // vệt hoạt nghiệm
+    for (let s = 0; s <= TF + 1e-6; s += 0.25) {
+      if (t < T0 + s) break; const y = 870 + 0.5 * G * s * s;
+      ctx.save(); ctx.globalAlpha = 0.55 * vis23; ctx.setLineDash([8, 10]); ctx.strokeStyle = GOLD; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(400, y); ctx.lineTo(690, y); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = GOLD; ctx.shadowColor = GOLD; ctx.shadowBlur = 12; [400, 690].forEach((x) => { ctx.beginPath(); ctx.arc(x, y, 5, 0, 7); ctx.fill(); }); ctx.restore();
+    }
+    const dy = fall(t);
+    hammer(400, 820 + dy, seg(t, 4.4, 5.6), t); feather(690, 836 + dy, seg(t, 4.8, 6.0), t);
+    leader(350, 828, 300, 700, 'búa địa chất', seg(t, 5.8, 6.6) * (1 - seg(t, 8.5, 8.8)), false);
+    leader(735, 850, 780, 700, 'lông chim', seg(t, 6.2, 7.0) * (1 - seg(t, 8.5, 8.8)), true);
+    // chạm đất: gợn bụi toả chậm (trọng lực yếu)
+    if (t > T0 + TF) { const k = seg(t, T0 + TF, T0 + TF + 1.4); ctx.save(); ctx.globalAlpha = (1 - k) * vis23; ctx.strokeStyle = GOLD; ctx.lineWidth = 2;
+      [400, 690].forEach((x) => { ctx.beginPath(); ctx.ellipse(x, HORIZON + 2, 40 + 140 * k, 6 + 16 * k, 0, Math.PI, 0); ctx.stroke(); }); ctx.restore(); }
+    focusText('Chạm đất cùng lúc', W / 2, 520, seg(t, 11.0, 11.8), { size: 86, color: BRAND.accent });
+    focusText('“Galileo đã đúng.”  — David Scott', W / 2, 620, seg(t, 11.6, 12.4), { size: 42, weight: 'italic 400', font: SERIF, color: DIM });
+    ctx.restore();
+  }
+  ctx.restore();
+  // CẢNH 4 · So sánh g (không zoom, đặt trên lớp nền mờ)
+  if (dim > 0) {
+    ctx.save(); ctx.globalAlpha = dim * 0.55; ctx.fillStyle = BG; ctx.fillRect(0, 0, W, H); ctx.restore();
+    focusText('Vì sao rơi chậm?', W / 2, 520, seg(t, 12.8, 13.6), { size: 84 });
+    const bars = [['Trái Đất', 'g = 9,8 m/s²', 9.8, 740, 13.1], ['Mặt Trăng', 'g = 1,62 m/s²', 1.62, 900, 13.5]];
+    bars.forEach(([name, val, g, y, t0]) => {
+      const p = easeOut(seg(t, t0, t0 + 0.8)); if (p <= 0) return;
+      text(ctx, name, 150, y - 46, { size: 42, weight: 700, color: CREAM, align: 'left', alpha: p });
+      text(ctx, val, 930, y - 46, { size: 42, weight: 700, color: BRAND.phys.a, align: 'right', alpha: p });
+      roundRect(ctx, 150, y - 10, 780, 26, 13, 'rgba(255,255,255,0.08)');
+      ctx.save(); ctx.shadowColor = BRAND.phys.a; ctx.shadowBlur = 18; roundRect(ctx, 150, y - 10, Math.max(26, 780 * g / 9.8 * p), 26, 13, BRAND.phys.a); ctx.restore();
+    });
+    focusText('Thả từ cùng độ cao 1,5 m', W / 2, 1050, seg(t, 14.9, 15.5), { size: 46, font: BRAND.font, weight: 600, color: GOLD });
+    const k = easeOut(seg(t, 15.3, 16.2));
+    if (k > 0) {
+      text(ctx, 'Trái Đất', 150, 1140, { size: 48, weight: 700, color: CREAM, align: 'left', alpha: k });
+      text(ctx, (0.55 * k).toFixed(2).replace('.', ',') + ' s', 930, 1140, { size: 56, weight: 800, color: CREAM, align: 'right', alpha: k });
+      text(ctx, 'Mặt Trăng', 150, 1225, { size: 48, weight: 700, color: CREAM, align: 'left', alpha: k });
+      text(ctx, (1.36 * k).toFixed(2).replace('.', ',') + ' s', 930, 1225, { size: 56, weight: 800, color: CREAM, align: 'right', alpha: k });
+    }
+  }
+  brandBug(ctx, true); seriesTag(ctx, 'HIỂU BẢN CHẤT', BRAND.primary);
+  captionAt(ctx, t, CAPS, true);
+  progressBar(ctx, t);
+  endCard(ctx, t, 17.3, true);
+};
+window.renderAt(0);
+</script>
+</body></html>
