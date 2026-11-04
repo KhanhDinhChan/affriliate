@@ -6,6 +6,7 @@ module.exports = {
   part: 'Phần 1/3',            // (tuỳ chọn) nhãn phần khi chia bài dài thành nhiều video
   subject: 'hoa',              // toan | ly | hoa | sinh | su | dia | van | gdktpl → tự chọn chế độ KHTN/KHXH
   mode: 'khtn',                // (tuỳ chọn) ép chế độ
+  look: 'so-tay',              // (khuyên dùng) giao diện Sổ tay chung cho mọi môn: giấy, mực, ảnh polaroid, bản đồ dán trang
   lesson: 'Hoá 12 · Tên bài theo SGK',
   channel: { name: '[TÊN KÊNH]', handle: '@tenkenh', next: 'Tên bài tiếp theo' },
   voiceDir: 'vo',              // tự nhận vo/00.mp3, vo/01.wav… theo số thứ tự beat

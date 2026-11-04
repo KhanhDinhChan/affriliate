@@ -10,6 +10,8 @@ Bộ máy trong `engine/` dựng video từ một tệp `scene.js`: lời đọc
 - **KHTN** (`toan`, `ly`, `hoa`, `sinh`): nền bảng tối, công thức TeX sắp chữ chuẩn, `swap`/`move`/`highlight` để biến đổi từng bước, `plot` vẽ đồ thị, `draw` mô phỏng hiện tượng theo quy luật thật.
 - **KHXH** (`su`, `dia`, `van`, `gdktpl`): nền sáng, `image` (Ken Burns, ghi nguồn, nhãn minh hoạ), `pin` chú thích trên ảnh, `map` vẽ từ Natural Earth (luôn có QĐ. Hoàng Sa, QĐ. Trường Sa), `timeline`, `quote`.
 
+**Giao diện chung khuyên dùng: `look: 'so-tay'`.** Giấy ngà, mực xanh đen, công thức sắp chữ bằng mực đậm, ảnh thật in kiểu polaroid có ghi nguồn, bản đồ in dán vào trang, thẻ ghi nhớ như giấy note. Một giao diện dùng được cho cả bài có công thức và bài có bản đồ, ảnh thật. Chi tiết ở mục "Giao diện Sổ tay" trong quy-chuan-chung.md.
+
 Đọc trước khi làm:
 - [references/quy-chuan-chung.md](references/quy-chuan-chung.md): màu môn, bố cục hai khổ, phụ đề, cấu trúc Shorts và bài giảng dài, danh sách kiểm tra trước khi đăng
 - [references/khtn.md](references/khtn.md): quy ước viết công thức (dấu phẩy thập phân, đơn vị, mhchem), macro màu, cách cho công thức chạy, ngữ pháp mô phỏng
@@ -35,7 +37,7 @@ Bộ máy trong `engine/` dựng video từ một tệp `scene.js`: lời đọc
 | `examples/hoa-natri-nuoc/` | Hoá 12 | 9:16 (và 16:9 từ cùng kịch bản) | mô phỏng Na + nước, phương trình mhchem, tô màu chất, bài tính có khoanh đáp số, `portrait` chỉnh riêng cho khổ dọc |
 | `examples/dia-vi-tri-viet-nam/` | Địa lí 12 | 9:16 | bản đồ bay từ châu Á về Việt Nam, Hoàng Sa và Trường Sa, ảnh có ghim, dòng thời gian |
 
-Video mẫu và ảnh tổng hợp nằm ở `demo/`.
+Hai bài mẫu đã bật `look: 'so-tay'`. Video mẫu và ảnh tổng hợp nằm ở `demo/`: các file `*-so-tay-*` là giao diện Sổ tay, các file còn lại là giao diện cũ.
 
 ## Không được phá
 

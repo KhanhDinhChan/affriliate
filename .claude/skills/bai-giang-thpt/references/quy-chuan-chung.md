@@ -13,6 +13,22 @@ Kênh dạy mọi môn THPT nhưng phải trông như **một kênh**. Mọi vid
 
 Chế độ được chọn tự động theo `subject`. Có thể ép chế độ khác bằng `mode: 'khtn' | 'khxh'`, ví dụ khi một bài Địa lí có nhiều tính toán.
 
+### Giao diện Sổ tay (`look: 'so-tay'`): khuyên dùng
+
+Chế độ quyết định **đồ vật nào** được dùng. Giao diện quyết định **trông ra sao**. Với `look: 'so-tay'`, cả hai chế độ dùng chung **một** giao diện, nên Lý, Hoá, Sử, Địa trông như cùng một kênh. Bài có cả công thức lẫn bản đồ, ảnh cũng không bị "đổi kênh" giữa chừng.
+
+| Thành phần | Trong giao diện Sổ tay |
+|---|---|
+| Nền | giấy ngà `#F4F0E6`, chấm lưới mờ, vân giấy |
+| Chữ và công thức | mực xanh đen `#22305A`. TeX sắp chữ bằng mực đậm. Màu đại lượng (`\cF` `\cV` `\cA` `\cE` `\cB`) chuyển sang tông đậm để đọc rõ trên giấy |
+| Ảnh thật | luôn in kiểu ảnh polaroid (viền trắng, bóng đổ, băng dính), dòng ghi nguồn nằm trên viền ảnh. Muốn bỏ khung thì đặt `frame: 'none'` |
+| Bản đồ | in trên giấy trắng dán vào trang bằng băng dính. Đất liền màu giấy, Việt Nam tô màu môn, luôn có QĐ. Hoàng Sa và QĐ. Trường Sa |
+| Thẻ ghi nhớ, phụ đề | giấy note có bóng và băng dính |
+| Ghim, khung nhấn | vòng khoanh và khung kẻ bằng nét tay. Nhãn ghim viết bằng chữ tay (Patrick Hand) |
+| Phân biệt ảnh thật và hình minh hoạ | ảnh thật: polaroid kèm nguồn. Hình vẽ: nét mực hoặc gắn nhãn `ai: 'HÌNH MINH HOẠ'`. Không để hình vẽ trông như ảnh tư liệu |
+
+Bỏ `look` thì quay về giao diện cũ: KHTN nền bảng tối, KHXH nền sáng phẳng. Hàm mô phỏng tự viết nên lấy màu từ `T` và `Q` trong `kit` (`T.ink`, `T.glass`, `T.bubble`, `Q.v`…) thay vì gắn cứng mã màu, để chạy đúng ở mọi giao diện.
+
 ## 2. Màu môn học (nhãn ở đầu video, thanh tiến độ, đường viền thẻ)
 
 | Môn | Mã | Màu |

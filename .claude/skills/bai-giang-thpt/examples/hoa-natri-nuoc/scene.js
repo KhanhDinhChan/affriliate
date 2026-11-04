@@ -7,6 +7,7 @@
 module.exports = {
   size: [1080, 1920],
   subject: 'hoa',
+  look: 'so-tay', // giao diện Sổ tay chung cho mọi môn; bỏ dòng này để về giao diện cũ (nền bảng tối)
   lesson: 'Hoá 12 · Kim loại nhóm IA tác dụng với nước',
   channel: { next: 'Vì sao K, Rb, Cs phản ứng mạnh hơn Na?' },
   // voiceDir: 'vo',
@@ -69,7 +70,7 @@ module.exports = {
 
   // ===== Mô phỏng hiện tượng: hàm vẽ, chỉ phụ thuộc thời gian (tau) và trạng thái (s.hong, s.label) =====
   draw: {
-    natri({ ctx, r, tau, s, text, arrow, U, T, lerp, clamp, easeOut }) {
+    natri({ ctx, r, tau, s, text, arrow, U, T, Q, lerp, clamp, easeOut }) {
       const cx = r.x + r.w / 2, base = r.y + r.h * 0.95, bw = r.w * 0.62, bh = r.h * 0.72;
       const top = base - bh, water = base - bh * 0.62;
       const pink = clamp(s.hong || 0);
@@ -80,7 +81,7 @@ module.exports = {
       ctx.fillStyle = grad; ctx.beginPath(); ctx.moveTo(cx - bw / 2, water); ctx.lineTo(cx + bw / 2, water); ctx.lineTo(cx + bw / 2, base - 30 * U);
       ctx.quadraticCurveTo(cx + bw / 2, base, cx + bw / 2 - 30 * U, base); ctx.lineTo(cx - bw / 2 + 30 * U, base); ctx.quadraticCurveTo(cx - bw / 2, base, cx - bw / 2, base - 30 * U); ctx.closePath(); ctx.fill();
       // cốc thuỷ tinh
-      ctx.strokeStyle = 'rgba(220,235,255,0.75)'; ctx.lineWidth = 6 * U; ctx.lineJoin = 'round';
+      ctx.strokeStyle = T.glass; ctx.lineWidth = 6 * U; ctx.lineJoin = 'round';
       ctx.beginPath(); ctx.moveTo(cx - bw / 2 - 18 * U, top); ctx.lineTo(cx - bw / 2, top + 14 * U); ctx.lineTo(cx - bw / 2, base - 30 * U); ctx.quadraticCurveTo(cx - bw / 2, base, cx - bw / 2 + 30 * U, base);
       ctx.lineTo(cx + bw / 2 - 30 * U, base); ctx.quadraticCurveTo(cx + bw / 2, base, cx + bw / 2, base - 30 * U); ctx.lineTo(cx + bw / 2, top + 14 * U); ctx.lineTo(cx + bw / 2 + 18 * U, top); ctx.stroke();
       for (let k = 1; k <= 4; k++) { const y = base - (bh * k) / 5; ctx.beginPath(); ctx.moveTo(cx + bw / 2 - 40 * U, y); ctx.lineTo(cx + bw / 2 - 10 * U, y); ctx.stroke(); }
@@ -97,22 +98,22 @@ module.exports = {
         for (let e = Math.floor(now / STEP); e >= 0 && now - e * STEP < LIFE; e--) {
           const age = (now - e * STEP) / LIFE; const [bx] = pos(e * STEP);
           const ox = (hash(e) - 0.5) * 46 * U, rise = age * (50 + 40 * hash(e + 7)) * U, rr0 = (3 + 6 * hash(e + 3)) * U;
-          ctx.strokeStyle = `rgba(255,255,255,${0.9 * (1 - age)})`; ctx.lineWidth = 2.2 * U;
+          ctx.strokeStyle = `rgba(${T.bubble},${0.9 * (1 - age)})`; ctx.lineWidth = 2.2 * U;
           ctx.beginPath(); ctx.arc(bx + ox, water - 6 * U - rise, rr0 * (0.6 + 0.6 * age), 0, Math.PI * 2); ctx.stroke();
         }
       }
       const g2 = ctx.createRadialGradient(nx - rad / 3, ny - rad / 3, rad / 6, nx, ny, rad);
       g2.addColorStop(0, '#FFFFFF'); g2.addColorStop(1, '#9AA4B2');
       ctx.fillStyle = g2; ctx.beginPath(); ctx.arc(nx, ny, rad, 0, Math.PI * 2); ctx.fill();
-      text('Na', nx, ny - rad - 22 * U, { size: 30, weight: 800, color: '#FFFFFF', alpha: clamp(1 - (s.label || 0)) });
+      text('Na', nx, ny - rad - 22 * U, { size: 30, weight: 800, color: T.ink, alpha: clamp(1 - (s.label || 0)) });
       // nhãn giải thích
       const L = clamp(s.label || 0);
       if (L > 0) {
         const [bx] = pos(Math.max(0, tau - 0.9));
-        arrow(r.x + r.w * 0.12, top - 10 * U, bx - 6 * U, water - 40 * U, '#38D3EE', easeOut(L));
-        text('khí H₂', r.x + r.w * 0.12, top - 44 * U, { size: 36, weight: 800, color: '#38D3EE', alpha: L });
-        arrow(r.x + r.w * 0.9, base - bh * 0.95, cx + bw * 0.3, base - bh * 0.3, '#FF9A3D', easeOut(L));
-        text('màu hồng: có OH⁻', r.x + r.w * 0.86, base - bh * 0.95 - 34 * U, { size: 34, weight: 800, color: '#FF9A3D', alpha: L });
+        arrow(r.x + r.w * 0.12, top - 10 * U, bx - 6 * U, water - 40 * U, Q.v, easeOut(L));
+        text('khí H₂', r.x + r.w * 0.12, top - 44 * U, { size: 36, weight: 800, color: Q.v, alpha: L });
+        arrow(r.x + r.w * 0.9, base - bh * 0.95, cx + bw * 0.3, base - bh * 0.3, Q.hl, easeOut(L));
+        text('màu hồng: có OH⁻', r.x + r.w * 0.86, base - bh * 0.95 - 34 * U, { size: 34, weight: 800, color: Q.hl, alpha: L });
       }
     },
   },

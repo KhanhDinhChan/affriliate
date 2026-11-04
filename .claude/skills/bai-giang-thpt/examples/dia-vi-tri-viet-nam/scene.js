@@ -6,6 +6,7 @@
 module.exports = {
   size: [1080, 1920],
   subject: 'dia',
+  look: 'so-tay', // giao diện Sổ tay chung cho mọi môn; bỏ dòng này để về giao diện cũ (nền sáng phẳng)
   lesson: 'Địa lí 12 · Vị trí địa lí và phạm vi lãnh thổ',
   channel: { next: 'Đặc điểm chung của địa hình Việt Nam' },
   beats: [

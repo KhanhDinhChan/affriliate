@@ -91,6 +91,8 @@ function mapData(views) {
   const size = sizeOpt ? sizeOpt.split('x').map(Number) : scene.size || [1080, 1920]; // mặc định khổ dọc TikTok
   const SUBJ_MODE = { toan: 'khtn', ly: 'khtn', hoa: 'khtn', sinh: 'khtn', su: 'khxh', dia: 'khxh', van: 'khxh', gdktpl: 'khxh' };
   const mode = scene.mode || SUBJ_MODE[scene.subject] || 'khtn';
+  const look = scene.look || 'mac-dinh'; // 'so-tay' = giao diện Sổ tay chung cho mọi môn (nền giấy sáng)
+  const inkMode = look === 'so-tay' ? 'khxh' : mode; // công thức trên nền sáng dùng mực đậm
   const U = Math.min(...size) / 1080;
   const out = path.resolve(outArg || path.join(dir, 'out', path.basename(scenePath, '.js') + (sizeOpt ? '-' + sizeOpt : '') + '.mp4'));
   const work = out.replace(/\.mp4$/, '') + '_work'; fs.rmSync(work, { recursive: true, force: true }); fs.mkdirSync(work, { recursive: true });
@@ -112,15 +114,15 @@ function mapData(views) {
 
   // 2. công thức, ảnh, bản đồ
   const images = {}; const views = [];
-  const ink = mode === 'khxh' ? '#152033' : '#EEF2F8';
-  const QC = mode === 'khxh' ? { F: '#E11D48', v: '#0891B2', a: '#7C3AED', E: '#B45309', B: '#15803D', hl: '#C2410C' } : { F: '#FF6B85', v: '#38D3EE', a: '#C08BFF', E: '#FFD15C', B: '#4BE08E', hl: '#FF9A3D' };
+  const ink = look === 'so-tay' ? '#22305A' : inkMode === 'khxh' ? '#152033' : '#EEF2F8';
+  const QC = inkMode === 'khxh' ? { F: '#E11D48', v: '#0891B2', a: '#7C3AED', E: '#B45309', B: '#15803D', hl: '#C2410C' } : { F: '#FF6B85', v: '#38D3EE', a: '#C08BFF', E: '#FFD15C', B: '#4BE08E', hl: '#FF9A3D' };
   const portrait = size[1] > size[0];
   for (const b of beats) for (const a of b.do || []) {
     if (a.formula !== undefined) {
       const A = { ...a, ...((portrait ? a.portrait : a.landscape) || {}) }; // cỡ riêng cho từng khổ
       const c = QC[A.color] || A.color || ink; const sz = (A.size || 64) * U;
-      const key = 'tex:' + crypto.createHash('md5').update(A.formula + c + sz + mode).digest('hex').slice(0, 12);
-      if (!images[key]) images[key] = svgFormula(A.formula, c, sz, mode);
+      const key = 'tex:' + crypto.createHash('md5').update(A.formula + c + sz + inkMode).digest('hex').slice(0, 12);
+      if (!images[key]) images[key] = svgFormula(A.formula, c, sz, inkMode);
       a.key = key;
       if (a.swap) { a.formulaNew = a.formula; delete a.formula; } // swap: đổi công thức đã có
     }
@@ -132,10 +134,10 @@ function mapData(views) {
   }
   const map = mapData(views);
 
-  const DATA = { size, subject: scene.subject, mode: scene.mode, lesson: scene.part ? `${scene.lesson} · ${scene.part}` : scene.lesson, channel: scene.channel, captions: scene.captions, beats, images, map, total, endDur };
+  const DATA = { size, subject: scene.subject, mode: scene.mode, look, lesson: scene.part ? `${scene.lesson} · ${scene.part}` : scene.lesson, channel: scene.channel, captions: scene.captions, beats, images, map, total, endDur };
   const sceneSrc = fs.readFileSync(scenePath, 'utf8');
   const html = `<!doctype html><html><head><meta charset="utf-8">
-<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Pangolin&family=Noto+Serif:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Pangolin&family=Patrick+Hand&family=Noto+Serif:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
 <style>html,body{margin:0;background:#000}canvas{display:block}</style></head><body><canvas id="c"></canvas>
 <script>window.DATA=${JSON.stringify(DATA)};window.module={exports:{}};</script>
 <script>${sceneSrc}</script><script>window.SCENE=module.exports;</script>
