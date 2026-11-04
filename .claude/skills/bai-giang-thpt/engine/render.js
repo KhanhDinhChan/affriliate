@@ -128,7 +128,13 @@ function mapData(views) {
     }
     if (a.image && !images[a.image]) {
       const f = path.resolve(dir, a.image); const ext = path.extname(f).slice(1).toLowerCase().replace('jpg', 'jpeg').replace('svg', 'svg+xml');
-      images[a.image] = `data:image/${ext};base64,` + fs.readFileSync(f).toString('base64');
+      if (fs.existsSync(f)) images[a.image] = `data:image/${ext};base64,` + fs.readFileSync(f).toString('base64');
+      else { // ảnh chưa có: khung chờ ghi rõ tên file, để duyệt bố cục trước khi có ảnh tư liệu
+        console.warn('  ! Chưa có ảnh, dùng khung chờ: ' + a.image);
+        const esc = (x) => String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800"><defs><pattern id="h" width="40" height="40" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="40" height="40" fill="#D3CAB7"/><rect width="12" height="40" fill="#C8BEA9"/></pattern></defs><rect width="1200" height="800" fill="url(#h)"/><text x="600" y="370" font-family="DejaVu Sans" font-weight="bold" font-size="76" fill="#7E735E" text-anchor="middle">ẢNH TƯ LIỆU</text><text x="600" y="450" font-family="DejaVu Sans" font-size="38" fill="#7E735E" text-anchor="middle">chờ ảnh: ${esc(a.image)}</text></svg>`;
+        images[a.image] = 'data:image/svg+xml;base64,' + Buffer.from(svg).toString('base64');
+      }
     }
     if ((a.map || a.mapTo) && a.view) views.push(a.view);
   }

@@ -26,6 +26,7 @@ Bộ máy trong `engine/` dựng video từ một tệp `scene.js`: lời đọc
 3. **Viết lời đọc theo beat**: mỗi beat là một ý, dài 1,5–6 giây. Theo khuôn KHTN *hiện tượng → công thức → ví dụ → ghi nhớ*, hoặc khuôn KHXH *bản đồ/ảnh → khái niệm → diễn biến → ý nghĩa*.
 4. **Chuẩn bị tư liệu (KHXH)**: ảnh để trong `assets/`, ghi nguồn và giấy phép vào `assets/NGUON.md`. Ảnh không phải tư liệu thật phải gắn `ai`.
 5. **Viết `scene.js`**: chép một bài mẫu trong `examples/` rồi sửa.
+   Ảnh chưa có thì bộ máy hiện khung "ẢNH TƯ LIỆU · chờ ảnh" để duyệt bố cục trước. Không đăng video còn khung chờ.
 6. **Duyệt bố cục bằng ảnh tĩnh**: chạy `node engine/render.js <bai>/scene.js --stills ...`, mở ảnh ra xem và sửa.
 7. **Thêm giọng đọc** (`voiceDir`), **render**, mở `sheet.jpg`, rồi chạy qua danh sách kiểm tra trong quy-chuan-chung.md.
 8. Báo lại cho người dùng: đường dẫn MP4, độ dài, khổ, nguồn tư liệu đã dùng, và những chỗ còn để giữ chỗ.
@@ -36,6 +37,7 @@ Bộ máy trong `engine/` dựng video từ một tệp `scene.js`: lời đọc
 |---|---|---|---|
 | `examples/hoa-natri-nuoc/` | Hoá 12 | 9:16 (và 16:9 từ cùng kịch bản) | mô phỏng Na + nước, phương trình mhchem, tô màu chất, bài tính có khoanh đáp số, `portrait` chỉnh riêng cho khổ dọc |
 | `examples/dia-vi-tri-viet-nam/` | Địa lí 12 | 9:16 | bản đồ bay từ châu Á về Việt Nam, Hoàng Sa và Trường Sa, ảnh có ghim, dòng thời gian |
+| `examples/su-dien-bien-phu/` | Lịch sử 12 | 9:16 | bản đồ định vị Điện Biên Phủ, sơ đồ tập đoàn cứ điểm vẽ tay có mũi tên từng đợt tiến công, khung ảnh tư liệu (chờ ảnh), dòng thời gian 3 đợt, thẻ kết quả và ý nghĩa, trích thơ nguyên văn |
 
 Hai bài mẫu đã bật `look: 'so-tay'`. Video mẫu và ảnh tổng hợp nằm ở `demo/`: các file `*-so-tay-*` là giao diện Sổ tay, các file còn lại là giao diện cũ.
 
