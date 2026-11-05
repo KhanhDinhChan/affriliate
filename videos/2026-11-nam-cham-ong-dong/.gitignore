@@ -1,0 +1,6 @@
+frames/
+frames-*.log
+out/*.png
+out/*.wav
+out/*.jpg
+out/v.mp4

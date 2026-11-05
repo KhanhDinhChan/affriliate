@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8">
+<!-- Vật lí 12 · Cảm ứng điện từ — "Thả nam châm vào ống đồng". Khổ dọc 9:16, 39 s.
+     Cảnh 3D dựng bằng Blender (blender/canh.py → frames/A, frames/B), ghép với lớp chữ phong cách Sổ tay.
+     Đoạn 9–28 s: giải thích bằng đại lượng vật lí (mũi tên P, v, B, F_từ, dòng điện cảm ứng ⊙ ⊗) và đồ thị v(t), vẽ 2D.
+     Hợp đồng render: window.SIZE, window.DURATION, window.renderAt(t) (trả về Promise — html2mp4.js đợi từng khung). -->
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@500;600;700;800&family=Patrick+Hand&display=swap" rel="stylesheet">
+<style>html,body{margin:0;background:#000}canvas{display:block}</style>
+</head><body><canvas id="c"></canvas>
+<script>
+window.SIZE = [1080, 1920];
+window.DURATION = 39;
+const CHANNEL = '[TÊN KÊNH]';
+const FPS3D = 24, NA = 216, NB = 97;
+
+const INK = '#22305A', MUTED = '#6E6656', PAPER = '#F4F0E6', NOTE = '#FFFDF7', SUBJ = '#0284C7', ORANGE = '#E8740C';
+const Q = { F: '#E11D48', v: '#0891B2', a: '#7C3AED', B: '#15803D', s: '#64748B' };
+const SANS = '"Be Vietnam Pro", sans-serif', HAND = '"Patrick Hand", sans-serif';
+const CAPS = [
+  [0.2, 2.0, 'Thả nam châm và một khối kim loại thường vào hai ống đồng (đã cắt dọc để nhìn vào trong).'],
+  [2.0, 4.0, 'Khối kim loại rơi qua ống chỉ trong khoảng nửa giây.'],
+  [4.0, 9.0, 'Còn nam châm thì rơi rất chậm, như có ai đó giữ lại!'],
+  [9.0, 12.0, 'Hãy nhìn mặt cắt của ống đồng.'],
+  [12.0, 15.0, 'Nam châm chịu trọng lực P, rơi với vận tốc v, mang theo từ trường B.'],
+  [15.0, 17.0, 'Phía dưới nam châm, từ thông qua ống tăng; phía trên, từ thông giảm.'],
+  [17.0, 19.0, 'Thành ống xuất hiện dòng điện cảm ứng, gọi là dòng điện Foucault.'],
+  [19.0, 22.0, 'Theo định luật Lenz, các dòng điện này tạo lực từ hướng lên, cản chuyển động.'],
+  [22.0, 25.0, 'Nam châm rơi càng nhanh, lực từ càng lớn.'],
+  [25.0, 28.0, 'Đến khi lực từ cân bằng trọng lực, nam châm rơi đều với tốc độ giới hạn.'],
+  [28.0, 32.0, 'Các vòng sáng minh hoạ dòng điện Foucault chạy trong thành ống.'],
+  [32.0, 36.0, 'Ứng dụng: phanh điện từ trên tàu lượn và một số tàu cao tốc.'],
+];
+
+const cv = document.getElementById('c'); cv.width = 1080; cv.height = 1920; const ctx = cv.getContext('2d');
+const W = 1080, H = 1920;
+const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, p) => a + (b - a) * p;
+const seg = (t, a, b) => clamp((t - a) / (b - a));
+const easeOut = (x) => 1 - Math.pow(1 - clamp(x), 3);
+const easeInOut = (x) => { x = clamp(x); return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; };
+const backOut = (x) => { x = clamp(x); const c = 1.5; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); };
+const hash = (n) => { const v = Math.sin(n * 127.1 + 311.7) * 43758.5453; return v - Math.floor(v); };
+
+// ===== Mô phỏng giống blender/canh.py để biết lúc hai vật chạm đệm =====
+const SIM = (() => {
+  const G = 9.8, VT = 0.2, KM = G / VT, PZ0 = 0.25, PZ1 = 1.25, MH = 0.08, PAD = 0.03, Z0 = 1.36, TD = 2.0;
+  const land = (braking) => { let z = Z0, v = 0, t = TD; const dt = 1e-4;
+    while (z - MH / 2 > PAD) { const lo = Math.max(z - MH / 2, PZ0), hi = Math.min(z + MH / 2, PZ1); const ins = Math.max(0, hi - lo) / MH;
+      v += (G - (braking ? KM * v * ins : 0)) * dt; z -= v * dt; t += dt; } return t; };
+  return { tObj: land(false), tMag: land(true), TD };
+})();
+
+// ===== Giấy, băng dính, chữ =====
+const paperCv = document.createElement('canvas'); paperCv.width = W; paperCv.height = H;
+(() => { const g = paperCv.getContext('2d'); g.fillStyle = PAPER; g.fillRect(0, 0, W, H); g.fillStyle = 'rgba(34,48,90,0.13)';
+  for (let y = 24; y < H; y += 48) for (let x = 24; x < W; x += 48) { g.beginPath(); g.arc(x, y, 2.2, 0, 7); g.fill(); }
+  for (let i = 0; i < 30000; i++) { g.fillStyle = `rgba(90,70,40,${0.02 + hash(i) * 0.05})`; g.fillRect(hash(i * 3) * W, hash(i * 7) * H, 1.6, 1.6); }
+  const v = g.createRadialGradient(W / 2, H / 2, 500, W / 2, H / 2, 1400); v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(80,60,30,0.15)'); g.fillStyle = v; g.fillRect(0, 0, W, H); })();
+function txt(s, x, y, o = {}) {
+  ctx.save(); const sz = o.size || 44; ctx.font = `${o.w || 700} ${sz}px ${o.font || SANS}`;
+  if (o.max) { const w = ctx.measureText(s).width; if (w > o.max) ctx.font = `${o.w || 700} ${Math.floor(sz * o.max / w)}px ${o.font || SANS}`; }
+  ctx.fillStyle = o.color || INK; ctx.textAlign = o.align || 'center'; ctx.textBaseline = 'middle'; ctx.globalAlpha = o.alpha ?? 1;
+  if (o.halo) { ctx.lineWidth = 8; ctx.strokeStyle = o.halo; ctx.lineJoin = 'round'; ctx.strokeText(s, x, y); }
+  ctx.fillText(s, x, y); ctx.restore();
+}
+function write(s, x, y, p, o = {}) { // chữ viết tay hiện dần
+  if (p <= 0) return; ctx.save(); const sz = o.size || 44; ctx.font = `400 ${sz}px ${HAND}`; const w = ctx.measureText(s).width;
+  const x0 = o.align === 'left' ? x : o.align === 'right' ? x - w : x - w / 2; ctx.beginPath(); ctx.rect(x0 - 8, y - sz, (w + 16) * clamp(p), sz * 2); ctx.clip();
+  if (o.halo) { ctx.lineWidth = 8; ctx.strokeStyle = o.halo; ctx.lineJoin = 'round'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.strokeText(s, x0, y); }
+  ctx.fillStyle = o.color || INK; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(s, x0, y); ctx.restore();
+}
+function tape(x, y, w, rot = 0, h = 40) {
+  ctx.save(); ctx.translate(x, y); ctx.rotate(rot); ctx.globalAlpha *= 0.82; ctx.fillStyle = '#EEDC9E'; ctx.beginPath();
+  const s = Math.round(x + y); ctx.moveTo(-w / 2, -h / 2);
+  for (let i = 0; i <= 6; i++) ctx.lineTo(-w / 2 + (w * i) / 6, -h / 2 + (hash(s + i) - 0.5) * 3);
+  for (let i = 0; i <= 3; i++) ctx.lineTo(w / 2 + (hash(s + 20 + i) - 0.5) * 8, -h / 2 + (h * i) / 3);
+  for (let i = 6; i >= 0; i--) ctx.lineTo(-w / 2 + (w * i) / 6, h / 2 + (hash(s + 40 + i) - 0.5) * 3);
+  for (let i = 3; i >= 0; i--) ctx.lineTo(-w / 2 + (hash(s + 60 + i) - 0.5) * 8, -h / 2 + (h * i) / 3);
+  ctx.closePath(); ctx.fill(); ctx.restore();
+}
+function note(x, y, w, h, color = SUBJ) { // giấy note có vạch màu + băng dính
+  ctx.save(); ctx.shadowColor = 'rgba(60,40,15,0.26)'; ctx.shadowBlur = 18; ctx.shadowOffsetX = 6; ctx.shadowOffsetY = 10;
+  ctx.fillStyle = NOTE; ctx.beginPath(); ctx.roundRect(x, y, w, h, 6); ctx.fill(); ctx.restore();
+  ctx.fillStyle = color; ctx.fillRect(x, y, 12, h); tape(x + w / 2, y + 2, 170, -0.03);
+}
+function arrow(x1, y1, x2, y2, color, p = 1, w = 9) {
+  const ex = lerp(x1, x2, p), ey = lerp(y1, y2, p), L = Math.hypot(ex - x1, ey - y1); if (L < 3) return;
+  const a = Math.atan2(ey - y1, ex - x1), hd = w * 3.2;
+  ctx.save(); ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = w; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(ex - Math.cos(a) * hd * 0.8, ey - Math.sin(a) * hd * 0.8); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(ex, ey); ctx.lineTo(ex - hd * Math.cos(a - 0.42), ey - hd * Math.sin(a - 0.42)); ctx.lineTo(ex - hd * Math.cos(a + 0.42), ey - hd * Math.sin(a + 0.42)); ctx.closePath(); ctx.fill(); ctx.restore();
+}
+function penArrow(x1, y1, x2, y2, p, color = INK) {
+  if (p <= 0) return; const ex = lerp(x1, x2, p), ey = lerp(y1, y2, p), mx = (x1 + ex) / 2 + (ey - y1) * 0.18, my = (y1 + ey) / 2 - (ex - x1) * 0.18;
+  ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.quadraticCurveTo(mx, my, ex, ey); ctx.stroke();
+  if (p >= 1) { const a = Math.atan2(ey - my, ex - mx); ctx.beginPath(); ctx.moveTo(ex - 20 * Math.cos(a - 0.5), ey - 20 * Math.sin(a - 0.5)); ctx.lineTo(ex, ey); ctx.lineTo(ex - 20 * Math.cos(a + 0.5), ey - 20 * Math.sin(a + 0.5)); ctx.stroke(); }
+  ctx.restore();
+}
+function stamp(s, x, y, p, rot) {
+  if (p <= 0) return; const sc = lerp(1.6, 1, easeOut(p)); ctx.save(); ctx.translate(x, y); ctx.rotate(rot); ctx.scale(sc, sc); ctx.globalAlpha = clamp(p * 2);
+  ctx.font = `800 46px ${SANS}`; const w = ctx.measureText(s).width + 40;
+  ctx.fillStyle = 'rgba(255,253,247,0.92)'; ctx.fillRect(-w / 2, -36, w, 72); ctx.strokeStyle = ORANGE; ctx.lineWidth = 5; ctx.strokeRect(-w / 2, -36, w, 72);
+  txt(s, 0, 2, { size: 46, w: 800, color: ORANGE }); ctx.restore();
+}
+function header(onPhoto) {
+  ctx.save(); ctx.font = `800 32px ${SANS}`; const cw = ctx.measureText(CHANNEL).width + 70; ctx.restore(); tape(W / 2, 168, cw, -0.015);
+  txt(CHANNEL, W / 2, 170, { size: 32, w: 800 });
+  ctx.save(); ctx.font = `800 28px ${SANS}`; const bw = ctx.measureText('VẬT LÝ 12').width + 36; ctx.restore();
+  ctx.fillStyle = SUBJ; ctx.beginPath(); ctx.roundRect(W / 2 - bw / 2, 204, bw, 44, 10); ctx.fill(); txt('VẬT LÝ 12', W / 2, 227, { size: 28, w: 800, color: '#fff' });
+  if (!onPhoto) txt('Cảm ứng điện từ · Dòng điện Foucault', W / 2, 280, { size: 30, w: 600 });
+}
+function caption(t) {
+  const c = CAPS.find(([a, b]) => t >= a && t < b); if (!c) return;
+  ctx.save(); ctx.font = `700 48px ${SANS}`; const words = c[2].split(' '), lines = []; let cur = '';
+  for (const w0 of words) { const s = cur ? cur + ' ' + w0 : w0; if (ctx.measureText(s).width > 880 && cur) { lines.push(cur); cur = w0; } else cur = s; } if (cur) lines.push(cur);
+  const bw = Math.max(...lines.map((l) => ctx.measureText(l).width)) + 60, bh = lines.length * 62 + 30; ctx.restore();
+  const y0 = 1470 - bh / 2;
+  ctx.save(); ctx.shadowColor = 'rgba(60,40,15,0.3)'; ctx.shadowBlur = 18; ctx.shadowOffsetX = 6; ctx.shadowOffsetY = 10; ctx.fillStyle = NOTE;
+  ctx.beginPath(); ctx.roundRect(W / 2 - bw / 2, y0, bw, bh, 4); ctx.fill(); ctx.restore();
+  lines.forEach((l, i) => txt(l, W / 2, y0 + 15 + 62 * (i + 0.5) + 2, { size: 48, w: 700 }));
+}
+
+// ===== Ảnh 3D (đọc từng khung khi cần) và công thức =====
+const cache = new Map();
+function load(src) { if (cache.has(src)) return cache.get(src); const im = new Image(); const p = new Promise((res) => { im.onload = () => res(im); im.onerror = () => res(null); }); im.src = src; cache.set(src, p); if (cache.size > 6) cache.delete(cache.keys().next().value); return p; }
+const TEX = {}; const texNames = ['dinh-luat-2', 'luc-tu', 'can-bang'];
+window.ready = Promise.all([
+  ...['700 40px "Be Vietnam Pro"', '800 40px "Be Vietnam Pro"', '600 40px "Be Vietnam Pro"', '40px "Patrick Hand"'].map((f) => document.fonts.load(f)),
+  ...texNames.map((n) => new Promise((res) => { const im = new Image(); im.onload = () => { TEX[n] = im; res(); }; im.onerror = res; im.src = 'tex/' + n + '.svg'; })),
+]);
+function formula(name, x, y, h, p, align = 'center') { // h: chiều cao chữ (px)
+  const im = TEX[name]; if (!im || p <= 0) return; const s = h / im.height; const w = im.width * s, hh = im.height * s; const x0 = align === 'left' ? x : x - w / 2;
+  ctx.save(); ctx.beginPath(); ctx.rect(x0 - 6, y - hh, (w + 12) * easeInOut(p), hh * 2); ctx.clip(); ctx.drawImage(im, x0, y - hh / 2, w, hh); ctx.restore();
+}
+
+// ===== Đoạn giải thích 2D: mặt cắt ống đồng =====
+const CX = 540, MY = 640;           // tâm nam châm
+function crossSection(t, alpha) {
+  if (alpha <= 0) return; ctx.save(); ctx.globalAlpha = alpha;
+  const pw = easeOut(seg(t, 9.2, 9.8));
+  [[290, 326], [754, 790]].forEach(([a, b], i) => { // thành ống
+    const g = ctx.createLinearGradient(a, 0, b, 0); g.addColorStop(0, '#9C5434'); g.addColorStop(0.45, '#E0A07C'); g.addColorStop(1, '#A85E3C');
+    ctx.fillStyle = g; const top = lerp(990, 330, pw); ctx.fillRect(a, top, b - a, 990 - top); });
+  write('thành ống đồng', 150, 360, seg(t, 9.8, 10.6), { size: 34, color: MUTED, align: 'center' });
+  // nam châm rơi vào chỗ
+  const my = MY - (1 - easeOut(seg(t, 9.6, 10.4))) * 400;
+  if (t > 9.6) {
+    ctx.fillStyle = '#2D5BC4'; ctx.fillRect(CX - 80, my - 80, 160, 80); ctx.fillStyle = '#C62828'; ctx.fillRect(CX - 80, my, 160, 80);
+    txt('S', CX, my - 40, { size: 50, w: 800, color: '#fff' }); txt('N', CX, my + 40, { size: 50, w: 800, color: '#fff' });
+  }
+  // đường sức từ B: ra ở cực N (dưới), vòng lên, vào cực S (trên)
+  const bp = easeInOut(seg(t, 12.6, 14.2));
+  if (bp > 0) {
+    ctx.save(); ctx.strokeStyle = Q.B; ctx.lineWidth = 4; ctx.setLineDash([1500, 1500]); ctx.lineDashOffset = 1500 * (1 - bp);
+    [[0, 110], [1, 175]].forEach(([k, d]) => [-1, 1].forEach((sd) => {
+      const x0 = CX + sd * (18 + k * 26); ctx.beginPath(); ctx.moveTo(x0, my + 80);
+      ctx.bezierCurveTo(x0, my + 80 + 130 + 40 * k, CX + sd * d, my + 80 + 90 + 30 * k, CX + sd * d, my);
+      ctx.bezierCurveTo(CX + sd * d, my - 80 - 90 - 30 * k, x0, my - 80 - 130 - 40 * k, x0, my - 80); ctx.stroke(); }));
+    ctx.restore();
+    if (bp > 0.8) [[110], [175]].forEach(([d]) => [-1, 1].forEach((sd) => arrow(CX + sd * d, my + 20, CX + sd * d, my - 12, Q.B, 1, 4)));
+    txt('B', CX + 190, my - 215, { size: 46, w: 800, color: Q.B, alpha: clamp(bp * 2 - 1) });
+  }
+  // trọng lực P và vận tốc v
+  arrow(CX, my, CX, my + 190, Q.F, easeOut(seg(t, 12.2, 12.8)), 10);
+  txt('P', CX + 34, my + 175, { size: 48, w: 800, color: Q.F, alpha: seg(t, 12.6, 12.9), align: 'left', halo: PAPER });
+  arrow(405, my - 70, 405, my + 90, Q.v, easeOut(seg(t, 13.4, 14.0)), 9);
+  txt('v', 372, my + 40, { size: 48, w: 800, color: Q.v, alpha: seg(t, 13.8, 14.1), align: 'right' });
+  // dòng điện cảm ứng ⊙ ⊗ trên thành ống (dưới: trái ⊙ phải ⊗; trên: trái ⊗ phải ⊙)
+  const sym = (x, y, dot, p) => { if (p <= 0) return; const r = 20 * backOut(p); ctx.save(); ctx.strokeStyle = ORANGE; ctx.fillStyle = ORANGE; ctx.lineWidth = 4;
+    ctx.fillStyle = NOTE; ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill(); ctx.stroke(); ctx.fillStyle = ORANGE;
+    if (dot) { ctx.beginPath(); ctx.arc(x, y, r * 0.28, 0, 7); ctx.fill(); }
+    else { const d = r * 0.6; ctx.beginPath(); ctx.moveTo(x - d, y - d); ctx.lineTo(x + d, y + d); ctx.moveTo(x + d, y - d); ctx.lineTo(x - d, y + d); ctx.stroke(); }
+    ctx.restore(); };
+  const lo = seg(t, 15.2, 15.6), hi = seg(t, 16.2, 16.6);
+  sym(308, my + 160, true, lo); sym(772, my + 160, false, lo); sym(308, my - 160, false, hi); sym(772, my - 160, true, hi);
+  write('từ thông tăng', 810, my + 140, seg(t, 15.5, 16.2), { size: 34, color: ORANGE, align: 'left' });
+  write('→ đẩy lên', 810, my + 182, seg(t, 19.2, 19.8), { size: 34, color: ORANGE, align: 'left' });
+  write('từ thông giảm', 810, my - 180, seg(t, 16.5, 17.2), { size: 34, color: ORANGE, align: 'left' });
+  write('→ hút lên', 810, my - 138, seg(t, 19.6, 20.2), { size: 34, color: ORANGE, align: 'left' });
+  write('dòng điện Foucault', 150, my + 230, seg(t, 17.2, 18.2), { size: 36, color: ORANGE, align: 'center' });
+  penArrow(150, my + 205, 292, my + 172, seg(t, 18.0, 18.5), ORANGE);
+  // lực từ hướng lên, lớn dần tới bằng P
+  const fp = easeOut(seg(t, 19.4, 20.4)) * lerp(0.55, 1, easeInOut(seg(t, 22.0, 26.0)));
+  if (fp > 0) { arrow(CX, my - 80, CX, my - 80 - 190 * fp, Q.F, 1, 10); txt('F từ', CX + 32, my - 80 - 175 * fp, { size: 44, w: 800, color: Q.F, align: 'left', halo: PAPER }); }
+  ctx.restore();
+}
+
+// ===== Đồ thị v(t): rơi tự do so với nam châm trong ống =====
+function graph(t, alpha) {
+  if (alpha <= 0) return; ctx.save(); ctx.globalAlpha = alpha;
+  const X0 = 170, Y0 = 950, GW = 800, GH = 560, z = easeInOut(seg(t, 24.8, 25.8));
+  const tmax = lerp(0.6, 0.15, z), vmax = lerp(6, 0.3, z), VT = 0.2, TAU = VT / 9.8;
+  const X = (tt) => X0 + (tt / tmax) * GW, Y = (v) => Y0 - (v / vmax) * GH;
+  // lưới + trục
+  ctx.strokeStyle = 'rgba(34,48,90,0.12)'; ctx.lineWidth = 2;
+  const vstep = vmax > 1 ? 1 : 0.05, tstep = tmax > 0.3 ? 0.1 : 0.05;
+  for (let v = vstep; v <= vmax + 1e-9; v += vstep) { ctx.beginPath(); ctx.moveTo(X0, Y(v)); ctx.lineTo(X0 + GW, Y(v)); ctx.stroke(); txt(v.toFixed(vmax > 1 ? 0 : 2).replace('.', ','), X0 - 16, Y(v), { size: 26, w: 600, color: MUTED, align: 'right' }); }
+  for (let tt = tstep; tt <= tmax + 1e-9; tt += tstep) txt(tt.toFixed(2).replace('.', ','), X(tt), Y0 + 30, { size: 26, w: 600, color: MUTED });
+  arrow(X0, Y0, X0 + GW + 40, Y0, INK, 1, 4); arrow(X0, Y0, X0, Y0 - GH - 50, INK, 1, 4);
+  txt('t (s)', X0 + GW + 40, Y0 + 40, { size: 32, w: 700, align: 'right' }); txt('v (m/s)', X0 + 14, Y0 - GH - 50, { size: 32, w: 700, align: 'left' });
+  const draw = seg(t, 22.3, 24.3);
+  ctx.save(); ctx.beginPath(); ctx.rect(X0, Y0 - GH - 10, GW + 10, GH + 10); ctx.clip();
+  // rơi tự do v = g·t
+  ctx.strokeStyle = Q.s; ctx.lineWidth = 6; ctx.setLineDash([16, 12]); ctx.beginPath(); ctx.moveTo(X(0), Y(0)); ctx.lineTo(X(0.6 * draw), Y(9.8 * 0.6 * draw)); ctx.stroke(); ctx.setLineDash([]);
+  // nam châm trong ống: v = v_T(1 − e^(−t/τ))
+  ctx.strokeStyle = Q.v; ctx.lineWidth = 8; ctx.beginPath();
+  for (let i = 0; i <= 200; i++) { const tt = (0.6 * draw * i) / 200; const v = VT * (1 - Math.exp(-tt / TAU)); i ? ctx.lineTo(X(tt), Y(v)) : ctx.moveTo(X(tt), Y(v)); }
+  ctx.stroke();
+  if (z > 0.3) { ctx.strokeStyle = ORANGE; ctx.lineWidth = 3; ctx.setLineDash([10, 10]); ctx.beginPath(); ctx.moveTo(X0, Y(VT)); ctx.lineTo(X0 + GW, Y(VT)); ctx.stroke(); ctx.setLineDash([]); }
+  ctx.restore();
+  write('rơi tự do: v = g·t', X(lerp(0.33, 0.016, z)) + 20, Y(lerp(4.3, 0.2, z)), seg(t, 23.0, 23.8) * (1 - z), { size: 36, color: Q.s, align: 'left' });
+  write('nam châm trong ống', X0 + GW - 10, Y(VT) - 40 + (1 - z) * -10, seg(t, 23.6, 24.4), { size: 38, color: Q.v, align: 'right' });
+  txt('v_T', X0 + GW - 10, Y(VT) + 30, { size: 34, w: 800, color: ORANGE, align: 'right', alpha: seg(t, 25.6, 26.0) });
+  write('rơi đều', X(0.09), Y(VT) + 70, seg(t, 26.0, 26.8), { size: 40, color: ORANGE, align: 'left' });
+  txt('Số liệu minh hoạ: v_T ≈ 0,2 m/s', X0 + GW, Y0 + 80, { size: 24, w: 600, color: MUTED, align: 'right' });
+  ctx.restore();
+}
+
+// ===== Ứng dụng: phanh điện từ =====
+function application(t, alpha) {
+  if (alpha <= 0) return; ctx.save(); ctx.globalAlpha = alpha; const u = t - 32;
+  note(110, 340, 860, 300, SUBJ);
+  txt('Ứng dụng: phanh điện từ', 160, 410, { size: 46, w: 800, color: SUBJ, align: 'left' });
+  write('• Tàu lượn siêu tốc, một số tàu cao tốc', 160, 490, seg(u, 0.4, 1.4), { size: 40, align: 'left' });
+  write('• Hãm êm, không cần tiếp xúc, ít mài mòn', 160, 560, seg(u, 1.2, 2.2), { size: 40, align: 'left' });
+  // hình: lá kim loại chạy qua giữa hai nam châm
+  const fx = lerp(330, 560, easeInOut(seg(u, 0.5, 3.5)));
+  ctx.fillStyle = '#C62828'; ctx.fillRect(470, 760, 140, 110); ctx.fillStyle = '#2D5BC4'; ctx.fillRect(470, 1020, 140, 110);
+  txt('N', 540, 815, { size: 44, w: 800, color: '#fff' }); txt('S', 540, 1075, { size: 44, w: 800, color: '#fff' });
+  const g = ctx.createLinearGradient(0, 885, 0, 1005); g.addColorStop(0, '#9C5434'); g.addColorStop(0.5, '#E0A07C'); g.addColorStop(1, '#A85E3C');
+  ctx.fillStyle = g; ctx.fillRect(fx - 220, 905, 440, 70);
+  write('lá kim loại', fx - 200, 885, 1, { size: 32, color: MUTED, align: 'left' });
+  ctx.save(); ctx.strokeStyle = ORANGE; ctx.lineWidth = 4; ctx.beginPath(); ctx.ellipse(540, 940, 60, 24, 0, 0, 7); ctx.stroke(); ctx.restore();
+  arrow(fx + 240, 940, fx + 360, 940, Q.v, 1, 8); txt('v', fx + 300, 900, { size: 40, w: 800, color: Q.v });
+  arrow(fx - 240, 940, fx - 360, 940, Q.F, easeOut(seg(u, 1.0, 1.6)), 9); txt('F từ', fx - 300, 900, { size: 38, w: 800, color: Q.F, alpha: seg(u, 1.4, 1.7) });
+  write('lực từ ngược chiều chuyển động', 540, 1210, seg(u, 2.0, 3.0), { size: 38, color: Q.F });
+  ctx.restore();
+}
+function endCard(t) {
+  const p = easeOut(seg(t, 36.0, 36.5)); if (p <= 0) return; ctx.save(); ctx.globalAlpha = p; ctx.drawImage(paperCv, 0, 0); ctx.restore();
+  txt(CHANNEL, W / 2, 740, { size: 72, w: 800, alpha: p }); txt('Vật lí dễ hiểu, mỗi ngày một hiện tượng', W / 2, 820, { size: 36, w: 600, color: MUTED, alpha: p });
+  const s = backOut(seg(t, 36.3, 36.9)); ctx.save(); ctx.translate(W / 2, 960); ctx.scale(s, s); ctx.fillStyle = '#FF8A1F'; ctx.beginPath(); ctx.roundRect(-300, -55, 600, 110, 55); ctx.fill(); ctx.restore();
+  txt('Theo dõi kênh', W / 2, 962, { size: 46, w: 800, color: '#fff', alpha: clamp(s) });
+  write('Bài sau: Máy phát điện xoay chiều hoạt động thế nào?', W / 2, 1100, seg(t, 36.8, 37.8), { size: 40, color: SUBJ });
+}
+
+// ===== Dựng từng khung =====
+window.renderAt = async (t) => {
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.filter = 'none';
+  // nền: khung 3D cảnh A (0–9 s) và B (28–32 s)
+  let src = null;
+  if (t < 9.6) src = `frames/A/${String(Math.min(NA - 1, Math.round(t * FPS3D))).padStart(4, '0')}.jpg`;
+  else if (t >= 27.6 && t < 32.4) src = `frames/B/${String(Math.min(NB - 1, Math.max(0, Math.round((t - 28) * FPS3D)))).padStart(4, '0')}.jpg`;
+  if (src) { const im = await load(src); if (im) ctx.drawImage(im, 0, 0, W, H); else { ctx.fillStyle = '#C9BFAE'; ctx.fillRect(0, 0, W, H); txt('chưa có khung 3D: ' + src, W / 2, H / 2, { size: 30 }); } }
+  // giấy trượt lên phủ cảnh 3D (9–28 s và 32–36 s)
+  const paperIn = (a, b) => (t < a || t >= b + 0.45) ? 0 : t < a + 0.45 ? easeInOut((t - a) / 0.45) : t < b ? 1 : 1 - easeInOut((t - b) / 0.45);
+  const p1 = paperIn(9.0, 27.6), p2 = paperIn(32.0, 36.0);
+  const pp = Math.max(p1, p2);
+  if (pp > 0) { ctx.save(); ctx.translate(0, (1 - pp) * H); ctx.shadowColor = 'rgba(0,0,0,0.35)'; ctx.shadowBlur = 30; ctx.drawImage(paperCv, 0, 0); ctx.restore(); }
+  // ---- lớp chữ trên cảnh A ----
+  if (t < 9.0) {
+    write('nam châm', 290, 190, seg(t, 0.4, 1.0) * (1 - seg(t, 2.0, 2.3)), { size: 42, align: 'right' });
+    write('vật không', 810, 170, seg(t, 0.8, 1.3) * (1 - seg(t, 2.0, 2.3)), { size: 40, align: 'left' });
+    write('có từ tính', 810, 214, seg(t, 1.2, 1.7) * (1 - seg(t, 2.0, 2.3)), { size: 40, align: 'left' });
+    stamp('≈ ' + (SIM.tObj - SIM.TD).toFixed(1).replace('.', ',') + ' s', 860, 1300, seg(t, SIM.tObj + 0.05, SIM.tObj + 0.35), 0.06);
+    stamp('≈ ' + Math.round(SIM.tMag - SIM.TD) + ' s', 220, 1300, seg(t, SIM.tMag + 0.05, SIM.tMag + 0.35), -0.06);
+  }
+  // ---- đoạn giải thích 2D ----
+  if (p1 > 0) {
+    ctx.save(); ctx.translate(0, (1 - p1) * H);
+    const csA = 1 - easeInOut(seg(t, 22.0, 22.5)), grA = easeInOut(seg(t, 22.2, 22.7));
+    crossSection(t, csA);
+    // thẻ định luật Lenz rồi công thức
+    const lz = easeOut(seg(t, 17.6, 18.2)) * (1 - easeInOut(seg(t, 19.6, 20.0)));
+    if (lz > 0) { ctx.save(); ctx.globalAlpha = lz; note(110, 1030, 860, 250, SUBJ); txt('Định luật Lenz', 160, 1090, { size: 42, w: 800, color: SUBJ, align: 'left' });
+      ['Dòng điện cảm ứng có chiều sao cho từ trường', 'do nó sinh ra chống lại sự biến thiên', 'của từ thông ban đầu qua mạch.'].forEach((l, i) => txt(l, 160, 1150 + i * 44, { size: 34, w: 500, align: 'left' })); ctx.restore(); }
+    const fa = 1 - easeInOut(seg(t, 22.0, 22.4));
+    ctx.save(); ctx.globalAlpha = fa; formula('dinh-luat-2', 540, 1100, 64, seg(t, 20.0, 20.8)); formula('luc-tu', 540, 1210, 64, seg(t, 20.8, 21.6)); ctx.restore();
+    graph(t, grA);
+    formula('can-bang', 540, 1130, 60, seg(t, 25.8, 26.8));
+    ctx.restore();
+  }
+  // ---- lớp chữ trên cảnh B ----
+  if (t >= 28.0 && t < 32.0 && pp < 1) {
+    write('dòng điện Foucault', 760, 200, seg(t, 28.4, 29.2), { size: 46, color: ORANGE, halo: 'rgba(255,253,247,0.85)' });
+    penArrow(700, 228, 620, 282, seg(t, 29.1, 29.5), ORANGE);
+    txt('ống đồng cắt dọc · hình minh hoạ', 40, 1300, { size: 26, w: 600, color: '#fff', align: 'left', alpha: seg(t, 28.2, 28.6), halo: 'rgba(0,0,0,0.35)' });
+  }
+  if (p2 > 0) { ctx.save(); ctx.translate(0, (1 - p2) * H); application(t, 1); ctx.restore(); }
+  if (t >= 2.4) header(!(pp > 0.5) && t < 36);
+  if (t < 36) caption(t);
+  endCard(t);
+  ctx.fillStyle = 'rgba(27,26,24,0.15)'; ctx.fillRect(0, H - 10, W, 10); ctx.fillStyle = SUBJ; ctx.fillRect(0, H - 10, W * clamp(t / window.DURATION), 10);
+};
+</script>
+</body></html>
