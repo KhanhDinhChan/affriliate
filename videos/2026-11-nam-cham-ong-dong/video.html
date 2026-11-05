@@ -282,12 +282,13 @@ window.renderAt = async (t) => {
   }
   // ---- lớp chữ trên cảnh B ----
   if (t >= 28.0 && t < 32.0 && pp < 1) {
-    write('dòng điện Foucault', 760, 200, seg(t, 28.4, 29.2), { size: 46, color: ORANGE, halo: 'rgba(255,253,247,0.85)' });
-    penArrow(700, 228, 620, 282, seg(t, 29.1, 29.5), ORANGE);
-    txt('ống đồng cắt dọc · hình minh hoạ', 40, 1300, { size: 26, w: 600, color: '#fff', align: 'left', alpha: seg(t, 28.2, 28.6), halo: 'rgba(0,0,0,0.35)' });
+    write('dòng điện Foucault', 540, 1325, seg(t, 28.4, 29.2), { size: 48, color: ORANGE, halo: 'rgba(255,253,247,0.9)' });
+    penArrow(640, 1290, 700, 1215, seg(t, 29.1, 29.5), ORANGE);
+    txt('ống đồng cắt dọc · hình minh hoạ', 40, 170, { size: 26, w: 600, color: '#fff', align: 'left', alpha: seg(t, 28.2, 28.6), halo: 'rgba(0,0,0,0.35)' });
   }
   if (p2 > 0) { ctx.save(); ctx.translate(0, (1 - p2) * H); application(t, 1); ctx.restore(); }
-  if (t >= 2.4) header(!(pp > 0.5) && t < 36);
+  const inB = t >= 28.0 && t < 32.0 && pp < 0.5;
+  if (t >= 2.4 && !inB) header(!(pp > 0.5) && t < 36);
   if (t < 36) caption(t);
   endCard(t);
   ctx.fillStyle = 'rgba(27,26,24,0.15)'; ctx.fillRect(0, H - 10, W, 10); ctx.fillStyle = SUBJ; ctx.fillRect(0, H - 10, W * clamp(t / window.DURATION), 10);
