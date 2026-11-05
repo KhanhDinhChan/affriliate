@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8">
+<!-- Vật lí 12 · "Bếp từ: vì sao nồi nóng mà mặt bếp không nóng?" — khổ dọc 9:16, 60 s, phong cách 3D điện ảnh.
+     Cảnh 3D: blender/canh.py → frames/S1, S2, S3, S5, S6 (24 hình/giây). Đoạn 19–37 s và 51–57 s: giải thích 2D nền tối, nét phát sáng.
+     Phụ đề chữ có chân màu trắng hiện từng cụm, không khung. Hạt phim + tối viền phủ toàn video.
+     renderAt(t) trả về Promise (html2mp4.js đợi từng khung). -->
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@500;600;700;800&family=Noto+Serif:wght@600;700&display=swap" rel="stylesheet">
+<style>html,body{margin:0;background:#000}canvas{display:block}</style>
+</head><body><canvas id="c"></canvas>
+<script>
+window.SIZE = [1080, 1920];
+window.DURATION = 60;
+const CHANNEL = '[TÊN KÊNH]', HANDLE = '@tenkenh';
+const SHOTS = [
+  { id: 'S1', t0: 0, t1: 5, n: 121 }, { id: 'S2', t0: 5, t1: 11, n: 145 }, { id: 'S3', t0: 11, t1: 19, n: 193 },
+  { id: 'S5', t0: 37, t1: 45, n: 193 }, { id: 'S6', t0: 45, t1: 51, n: 145 },
+];
+const CAPS = [
+  [0.3, 2.6, 'Nồi nước sôi sùng sục trên bếp từ,'],
+  [2.6, 5.0, 'nhưng viên đá ngay bên cạnh vẫn chưa tan.'],
+  [5.0, 8.0, 'Bí mật nằm bên dưới lớp kính:'],
+  [8.0, 11.0, 'một cuộn dây đồng cuộn phẳng.'],
+  [11.0, 14.6, 'Dòng điện xoay chiều đổi chiều hàng chục nghìn lần mỗi giây,'],
+  [14.6, 19.0, 'tạo ra từ trường biến thiên xuyên qua mặt kính, vào đáy nồi.'],
+  [19.0, 23.0, 'Từ trường biến thiên làm từ thông qua đáy nồi thay đổi liên tục.'],
+  [23.0, 27.0, 'Theo định luật Faraday, trong đáy nồi xuất hiện suất điện động cảm ứng,'],
+  [27.0, 31.0, 'sinh ra các dòng điện xoáy, gọi là dòng điện Foucault.'],
+  [31.0, 34.0, 'Dòng điện chạy trong kim loại có điện trở thì toả nhiệt.'],
+  [34.0, 37.0, 'Còn mặt kính không dẫn điện, nên không có dòng điện, không tự nóng lên.'],
+  [37.0, 41.0, 'Chính đáy nồi tự nóng lên từ bên trong,'],
+  [41.0, 45.0, 'rồi truyền nhiệt cho nước. Mặt kính chỉ ấm lên vì tiếp xúc với nồi.'],
+  [45.0, 48.0, 'Muốn biết nồi có dùng được bếp từ không?'],
+  [48.0, 51.0, 'Áp nam châm vào đáy nồi: hút thì dùng được.'],
+  [51.0, 57.0, 'Tóm lại, bếp từ nấu nóng bằng chính dòng điện Foucault trong đáy nồi.'],
+];
+
+const cv = document.getElementById('c'); cv.width = 1080; cv.height = 1920; const ctx = cv.getContext('2d');
+const W = 1080, H = 1920;
+const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, p) => a + (b - a) * p;
+const seg = (t, a, b) => clamp((t - a) / (b - a));
+const easeOut = (x) => 1 - Math.pow(1 - clamp(x), 3);
+const easeInOut = (x) => { x = clamp(x); return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; };
+const hash = (n) => { const v = Math.sin(n * 127.1 + 311.7) * 43758.5453; return v - Math.floor(v); };
+const SANS = '"Be Vietnam Pro", sans-serif', SERIF = '"Noto Serif", Georgia, serif';
+const C = { i: '#FBBF24', B: '#4ADE80', eddy: '#FB923C', heat: '#F43F5E', glass: '#9CA3AF', white: '#F2F2F2' };
+
+// ===== Hạt phim + tối viền (tạo sẵn) =====
+const grains = [0, 1, 2, 3].map((k) => { const g = document.createElement('canvas'); g.width = 540; g.height = 960; const c = g.getContext('2d');
+  const im = c.createImageData(540, 960); for (let i = 0; i < 540 * 960; i++) { const v = 128 + (hash(i * 1.7 + k * 99991) - 0.5) * 120; im.data[i * 4] = im.data[i * 4 + 1] = im.data[i * 4 + 2] = v; im.data[i * 4 + 3] = 255; }
+  c.putImageData(im, 0, 0); return g; });
+const vignette = (() => { const g = document.createElement('canvas'); g.width = W; g.height = H; const c = g.getContext('2d');
+  const r = c.createRadialGradient(W / 2, H * 0.45, H * 0.25, W / 2, H * 0.5, H * 0.75); r.addColorStop(0, 'rgba(0,0,0,0)'); r.addColorStop(1, 'rgba(0,0,0,0.55)'); c.fillStyle = r; c.fillRect(0, 0, W, H); return g; })();
+function film(t) {
+  ctx.save(); ctx.globalCompositeOperation = 'overlay'; ctx.globalAlpha = 0.07; ctx.drawImage(grains[Math.floor(t * 24) % 4], 0, 0, W, H); ctx.restore();
+  ctx.drawImage(vignette, 0, 0);
+}
+
+// ===== Chữ =====
+function txt(s, x, y, o = {}) {
+  ctx.save(); const sz = o.size || 44; ctx.font = `${o.w || 700} ${sz}px ${o.font || SANS}`; if (o.ls) ctx.letterSpacing = o.ls + 'px';
+  if (o.max) { const w = ctx.measureText(s).width; if (w > o.max) ctx.font = `${o.w || 700} ${Math.floor(sz * o.max / w)}px ${o.font || SANS}`; }
+  ctx.fillStyle = o.color || C.white; ctx.textAlign = o.align || 'center'; ctx.textBaseline = 'middle'; ctx.globalAlpha = o.alpha ?? 1;
+  if (o.glow) { ctx.shadowColor = o.glow; ctx.shadowBlur = o.blur || 18; }
+  if (o.shadow) { ctx.shadowColor = 'rgba(0,0,0,0.85)'; ctx.shadowBlur = 14; ctx.shadowOffsetY = 2; }
+  ctx.fillText(s, x, y); ctx.restore();
+}
+// Phụ đề kiểu điện ảnh: chữ có chân trắng, hiện từng cụm 3–5 chữ theo thời gian đọc
+function subtitle(t) {
+  const c = CAPS.find(([a, b]) => t >= a && t < b); if (!c) return;
+  const words = c[2].split(' '); const chunks = []; let cur = [];
+  words.forEach((w, i) => { cur.push(w); const punct = /[,.:;!?]$/.test(w); if (cur.length >= 5 || (punct && cur.length >= 2) || i === words.length - 1) { chunks.push(cur.join(' ')); cur = []; } });
+  const total = chunks.reduce((s, x) => s + x.length + 6, 0); let acc = 0; const q = (t - c[0]) / (c[1] - c[0]);
+  let show = chunks[chunks.length - 1], start = 0;
+  for (const ch of chunks) { const len = (ch.length + 6) / total; if (q < acc + len) { show = ch; start = acc; break; } acc += len; }
+  const a = clamp((q - start) * (c[1] - c[0]) / 0.12);
+  txt(show, W / 2, 1500, { size: 50, w: 700, font: SERIF, shadow: true, alpha: a, max: 960 });
+}
+
+// ===== Khung 3D =====
+const cache = new Map();
+function load(src) { if (cache.has(src)) return cache.get(src); const im = new Image(); const p = new Promise((res) => { im.onload = () => res(im); im.onerror = () => res(null); }); im.src = src; cache.set(src, p); if (cache.size > 8) cache.delete(cache.keys().next().value); return p; }
+const frameSrc = (sh, local) => `frames/${sh.id}/${String(Math.min(sh.n - 1, Math.max(0, Math.round(local * 24)))).padStart(4, '0')}.jpg`;
+async function draw3D(t) {
+  const i = SHOTS.findIndex((s) => t >= s.t0 && t < s.t1); if (i < 0) return false; const sh = SHOTS[i];
+  const im = await load(frameSrc(sh, t - sh.t0));
+  if (im) ctx.drawImage(im, 0, 0, W, H); else { ctx.fillStyle = '#222'; ctx.fillRect(0, 0, W, H); txt('chưa có khung 3D ' + sh.id, W / 2, H / 2, { size: 30 }); }
+  const prev = SHOTS[i - 1]; // chuyển cảnh mờ chồng 0,35 s khi hai cảnh 3D liền nhau
+  if (prev && prev.t1 === sh.t0 && t - sh.t0 < 0.35) { const pim = await load(frameSrc(prev, prev.t1 - prev.t0)); if (pim) { ctx.save(); ctx.globalAlpha = 1 - (t - sh.t0) / 0.35; ctx.drawImage(pim, 0, 0, W, H); ctx.restore(); } }
+  return true;
+}
+function steam(t, a) { // hơi nước mờ bốc lên phía trên nồi (cảnh mở đầu)
+  if (a <= 0) return; ctx.save(); ctx.globalCompositeOperation = 'screen';
+  for (let k = 0; k < 14; k++) { const ph = ((t * 0.35 + hash(k)) % 1); const x = 330 + hash(k * 3) * 420 + Math.sin(t * 0.8 + k) * 40, y = 620 - ph * 520, r = 60 + ph * 140;
+    const g = ctx.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, `rgba(255,255,255,${0.09 * a * Math.sin(ph * Math.PI)})`); g.addColorStop(1, 'rgba(255,255,255,0)'); ctx.fillStyle = g; ctx.fillRect(x - r, y - r, r * 2, r * 2); }
+  ctx.restore();
+}
+function tag(s, x, y, p, color = C.white) { // nhãn mảnh kiểu phim tài liệu
+  if (p <= 0) return; ctx.save(); ctx.globalAlpha = easeOut(p); ctx.font = `600 32px ${SANS}`; const w = ctx.measureText(s).width;
+  ctx.fillStyle = 'rgba(0,0,0,0.45)'; ctx.fillRect(x - 14, y - 26, w + 28, 52); ctx.fillStyle = color; ctx.fillRect(x - 14, y - 26, 4, 52); ctx.restore();
+  txt(s, x, y + 1, { size: 32, w: 600, align: 'left', alpha: easeOut(p), color });
+}
+
+// ===== Công thức (SVG MathJax) =====
+const TEX = {};
+window.ready = Promise.all([
+  ...['700 40px "Be Vietnam Pro"', '800 40px "Be Vietnam Pro"', '600 40px "Be Vietnam Pro"', '700 40px "Noto Serif"'].map((f) => document.fonts.load(f)),
+  ...['faraday', 'joule'].map((n) => new Promise((res) => { const im = new Image(); im.onload = () => { TEX[n] = im; res(); }; im.onerror = res; im.src = 'tex/' + n + '.svg'; })),
+]);
+function formula(name, x, y, h, p) {
+  const im = TEX[name]; if (!im || p <= 0) return; const s = h / im.height, w = im.width * s, hh = im.height * s;
+  ctx.save(); ctx.globalAlpha = easeOut(p); ctx.shadowColor = 'rgba(255,255,255,0.35)'; ctx.shadowBlur = 16; ctx.drawImage(im, x - w / 2, y - hh / 2, w, hh); ctx.restore();
+}
+function glowLine(draw, color, w = 5, blur = 16) { ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = w; ctx.lineCap = 'round'; ctx.shadowColor = color; ctx.shadowBlur = blur; ctx.beginPath(); draw(); ctx.stroke(); ctx.restore(); }
+function arrowHead(x, y, ang, color, size = 16) { ctx.save(); ctx.fillStyle = color; ctx.shadowColor = color; ctx.shadowBlur = 10; ctx.translate(x, y); ctx.rotate(ang); ctx.beginPath(); ctx.moveTo(size, 0); ctx.lineTo(-size * 0.7, -size * 0.6); ctx.lineTo(-size * 0.7, size * 0.6); ctx.closePath(); ctx.fill(); ctx.restore(); }
+function sym(x, y, dot, color, a = 1) { ctx.save(); ctx.globalAlpha = a; ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 4; ctx.shadowColor = color; ctx.shadowBlur = 10;
+  ctx.beginPath(); ctx.arc(x, y, 17, 0, 7); ctx.stroke();
+  if (dot) { ctx.beginPath(); ctx.arc(x, y, 5, 0, 7); ctx.fill(); } else { ctx.beginPath(); ctx.moveTo(x - 10, y - 10); ctx.lineTo(x + 10, y + 10); ctx.moveTo(x + 10, y - 10); ctx.lineTo(x - 10, y + 10); ctx.stroke(); }
+  ctx.restore(); }
+
+// ===== Đoạn giải thích 2D (19–37 s) =====
+function explain(t) {
+  const u = t - 19; const VF = 0.6; const sg = Math.sin(2 * Math.PI * VF * u); const pos = sg >= 0; // dòng điện "minh hoạ chậm"
+  txt('VÌ SAO ĐÁY NỒI NÓNG?', W / 2, 270, { size: 58, w: 800, ls: 2, alpha: seg(u, 0.1, 0.6) });
+  // --- đồ thị i(t), B(t) ---
+  const gx = 140, gy = 520, gw = 800, ga = 120, gp = seg(u, 0.4, 2.2);
+  if (gp > 0) {
+    ctx.save(); ctx.globalAlpha = 0.55; ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(gx, gy); ctx.lineTo(gx + gw, gy); ctx.moveTo(gx, gy - 150); ctx.lineTo(gx, gy + 150); ctx.stroke(); ctx.restore();
+    txt('t', gx + gw + 24, gy, { size: 32, w: 600, font: SERIF, alpha: 0.7 });
+    const per = 220, shift = (u * VF * per) % per; const end = gx + gw * gp;
+    glowLine(() => { for (let x = gx; x <= end; x += 3) { const y = gy - ga * Math.sin(2 * Math.PI * (x - gx - shift) / per); x === gx ? ctx.moveTo(x, y) : ctx.lineTo(x, y); } }, C.i, 5);
+    if (u > 1.2) glowLine(() => { for (let x = gx; x <= end; x += 3) { const y = gy - ga * 0.62 * Math.sin(2 * Math.PI * (x - gx - shift) / per); x === gx ? ctx.moveTo(x, y) : ctx.lineTo(x, y); } }, C.B, 4, 12);
+    txt('i  dòng điện trong cuộn dây', gx + 14, gy - 175, { size: 30, w: 600, color: C.i, align: 'left', alpha: seg(u, 0.8, 1.4) });
+    txt('B  từ trường', gx + gw - 4, gy - 175, { size: 30, w: 600, color: C.B, align: 'right', alpha: seg(u, 1.4, 2.0) });
+    txt('minh hoạ chậm · thực tế hàng chục kHz', gx + gw, gy + 170, { size: 24, w: 500, alpha: 0.55 * seg(u, 2.0, 2.6), align: 'right' });
+  }
+  // --- công thức ---
+  formula('faraday', W / 2, 800, 110, seg(u, 4.2, 5.2) * (1 - seg(u, 11.6, 12.0)));
+  formula('joule', W / 2, 800, 64, seg(u, 12.2, 13.0));
+  // --- mặt cắt: nước, thành nồi, đáy nồi, mặt kính, cuộn dây, ferit ---
+  const D = seg(u, 0.6, 1.6); if (D <= 0) return; ctx.save(); ctx.globalAlpha = easeOut(D);
+  const heat = easeInOut(seg(u, 12.0, 15.0));
+  ctx.fillStyle = 'rgba(80,140,200,0.18)'; ctx.fillRect(272, 930, 536, 100);
+  ctx.fillStyle = '#8A8F98'; ctx.fillRect(256, 900, 16, 160); ctx.fillRect(808, 900, 16, 160);
+  const bg = ctx.createLinearGradient(0, 1030, 0, 1062); bg.addColorStop(0, `rgb(${lerp(150, 255, heat)},${lerp(155, 90, heat)},${lerp(165, 40, heat)})`); bg.addColorStop(1, `rgb(${lerp(110, 230, heat)},${lerp(115, 60, heat)},${lerp(125, 30, heat)})`);
+  ctx.save(); if (heat > 0) { ctx.shadowColor = C.heat; ctx.shadowBlur = 40 * heat; } ctx.fillStyle = bg; ctx.fillRect(256, 1030, 568, 32); ctx.restore();
+  ctx.fillStyle = 'rgba(160,170,190,0.16)'; ctx.fillRect(180, 1068, 720, 16); ctx.strokeStyle = 'rgba(220,225,235,0.55)'; ctx.lineWidth = 2; ctx.strokeRect(180, 1068, 720, 16);
+  ctx.fillStyle = '#2A2C31'; ctx.fillRect(250, 1158, 580, 18);
+  const coilX = [300, 345, 390, 435, 645, 690, 735, 780];
+  coilX.forEach((x) => sym(x, 1118, (x < 540) === pos, C.i, 0.95));
+  txt('đáy nồi', 240, 1046, { size: 26, w: 600, align: 'right', alpha: 0.75 });
+  txt('mặt kính', 170, 1076, { size: 26, w: 600, align: 'right', alpha: 0.75 });
+  txt('cuộn dây', 236, 1118, { size: 26, w: 600, align: 'right', alpha: 0.75 });
+  txt('ferit', 236, 1167, { size: 26, w: 600, align: 'right', alpha: 0.75 });
+  ctx.restore();
+  // --- đường sức từ: đi lên qua tâm, vào đáy nồi, tỏa ra, đi xuống ngoài mép cuộn dây, khép kín qua ferit ---
+  const fp = seg(u, 1.6, 3.2), fa = 0.35 + 0.65 * Math.abs(sg);
+  if (fp > 0) [-1, 1].forEach((sd) => [0, 1].forEach((k) => {
+    const xin = 540 + sd * (40 + k * 45), xout = 540 + sd * (300 + k * 40);
+    ctx.save(); ctx.globalAlpha = fa * easeOut(fp);
+    glowLine(() => { ctx.moveTo(xin, 1160); ctx.lineTo(xin, 1062); ctx.bezierCurveTo(xin, 1036, xin + sd * 60, 1040, (xin + xout) / 2, 1044); ctx.bezierCurveTo(xout - sd * 40, 1046, xout + sd * 30, 1060, xout + sd * 30, 1110);
+      ctx.bezierCurveTo(xout + sd * 30, 1170, xout - sd * 20, 1190, (xin + xout) / 2, 1192); ctx.bezierCurveTo(xin + sd * 40, 1192, xin, 1185, xin, 1160); }, C.B, 3.5, 12);
+    arrowHead(xin, 1098, pos ? -Math.PI / 2 : Math.PI / 2, C.B, 13); arrowHead(xout + sd * 30, 1120, pos ? Math.PI / 2 : -Math.PI / 2, C.B, 13);
+    ctx.restore(); }));
+  // --- dòng điện Foucault trong đáy nồi: ngược chiều dòng trong cuộn dây ---
+  const ep = seg(u, 8.0, 8.8);
+  if (ep > 0) { [380, 460, 620, 700].forEach((x) => sym(x, 1046, (x < 540) !== pos, C.eddy, easeOut(ep)));
+    txt('dòng điện Foucault', 540, 980, { size: 38, w: 700, color: C.eddy, glow: C.eddy, blur: 12, alpha: seg(u, 8.4, 9.0) }); }
+  // --- nhiệt: mũi tên lượn sóng từ đáy lên nước ---
+  if (heat > 0) for (let k = 0; k < 5; k++) { const x = 340 + k * 100, ph = ((u * 0.8 + k * 0.2) % 1);
+    ctx.save(); ctx.globalAlpha = heat * Math.sin(ph * Math.PI); glowLine(() => { for (let j = 0; j <= 20; j++) { const y = 1022 - j * 4 - ph * 30; const xx = x + Math.sin(j * 0.6 + u * 3) * 8; j ? ctx.lineTo(xx, y) : ctx.moveTo(xx, y); } }, C.heat, 4, 14); ctx.restore(); }
+  // --- mặt kính: không dẫn điện → không có dòng điện ---
+  const gp2 = seg(u, 15.2, 16.0);
+  if (gp2 > 0) { ctx.save(); ctx.globalAlpha = easeOut(gp2); ctx.strokeStyle = '#E5E7EB'; ctx.lineWidth = 4; ctx.shadowColor = '#fff'; ctx.shadowBlur = 14; ctx.strokeRect(176, 1064, 728, 24); ctx.restore();
+    txt('mặt kính không dẫn điện → I = 0 → không tự nóng', W / 2, 1250, { size: 34, w: 700, color: '#E5E7EB', alpha: easeOut(gp2), max: 900 }); }
+}
+
+// ===== Tóm tắt (51–57 s) =====
+function summary(t) {
+  const u = t - 51; txt('TÓM LẠI', W / 2, 360, { size: 60, w: 800, ls: 4, alpha: seg(u, 0.1, 0.5) });
+  const rows = [['Dòng điện xoay chiều trong cuộn dây', C.i], ['Từ trường biến thiên xuyên qua kính', C.B], ['Dòng điện Foucault trong đáy nồi', C.eddy], ['Đáy nồi toả nhiệt · Q = I²Rt', C.heat]];
+  rows.forEach(([s, c], k) => { const p = seg(u, 0.5 + k * 0.9, 1.0 + k * 0.9); if (p <= 0) return; const y = 520 + k * 210;
+    ctx.save(); ctx.globalAlpha = easeOut(p); ctx.strokeStyle = c; ctx.lineWidth = 3; ctx.shadowColor = c; ctx.shadowBlur = 18; ctx.beginPath(); ctx.roundRect(130, y - 60, 820, 120, 18); ctx.stroke(); ctx.restore();
+    txt(s, W / 2, y, { size: 40, w: 700, color: c, alpha: easeOut(p), max: 760 });
+    if (k > 0) { ctx.save(); ctx.globalAlpha = easeOut(p); glowLine(() => { ctx.moveTo(W / 2, y - 140); ctx.lineTo(W / 2, y - 76); }, '#fff', 3, 8); arrowHead(W / 2, y - 72, Math.PI / 2, '#fff', 12); ctx.restore(); } });
+}
+function endCard(t) {
+  const u = t - 57; txt(CHANNEL, W / 2, 820, { size: 72, w: 800, alpha: seg(u, 0.1, 0.6) });
+  txt('Vật lí trong đời sống, mỗi tuần một hiện tượng', W / 2, 900, { size: 34, w: 500, alpha: 0.7 * seg(u, 0.3, 0.8) });
+  ctx.save(); ctx.globalAlpha = seg(u, 0.5, 1.0); ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.beginPath(); ctx.roundRect(W / 2 - 260, 990, 520, 100, 50); ctx.stroke(); ctx.restore();
+  txt('Theo dõi kênh', W / 2, 1041, { size: 42, w: 700, alpha: seg(u, 0.5, 1.0) });
+  txt('Bài sau: Máy biến áp hoạt động thế nào?', W / 2, 1180, { size: 34, w: 600, font: SERIF, alpha: 0.85 * seg(u, 0.9, 1.4) });
+}
+
+// ===== Dựng từng khung =====
+window.renderAt = async (t) => {
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.filter = 'none'; ctx.globalCompositeOperation = 'source-over';
+  ctx.fillStyle = '#0E0F11'; ctx.fillRect(0, 0, W, H);
+  const is3D = await draw3D(t);
+  if (is3D) {
+    if (t < 5) steam(t, 1 - seg(t, 4.2, 5.0));
+    if (t < 1.8) txt('BẾP TỪ', W / 2, 330, { size: 96, w: 800, ls: 10, shadow: true, alpha: seg(t, 0.2, 0.6) * (1 - seg(t, 1.4, 1.8)) });
+    tag('cuộn dây đồng', 120, 1260, seg(t, 8.2, 8.6) * (1 - seg(t, 10.6, 11.0)), C.i);
+    tag('đường sức từ · minh hoạ chậm', 120, 300, seg(t, 12.0, 12.4) * (1 - seg(t, 18.4, 18.8)), C.B);
+    tag('nồi cắt dọc · dòng điện Foucault trong đáy', 120, 300, seg(t, 37.6, 38.0) * (1 - seg(t, 44.4, 44.8)), C.eddy);
+    tag('thử bằng nam châm', 120, 300, seg(t, 45.6, 46.0) * (1 - seg(t, 50.4, 50.8)), '#FCA5A5');
+  } else if (t >= 19 && t < 37) explain(t);
+  else if (t >= 51 && t < 57) summary(t);
+  else if (t >= 57) endCard(t);
+  // chuyển cảnh qua màu đen giữa 3D và 2D
+  const dip = (a) => 1 - Math.abs(clamp((t - a) / 0.4, -1, 1));
+  const k = Math.max(dip(19), dip(37), dip(51), dip(57)); if (k > 0) { ctx.fillStyle = `rgba(0,0,0,${k})`; ctx.fillRect(0, 0, W, H); }
+  film(t);
+  txt(HANDLE, W - 50, 1040, { size: 26, w: 600, align: 'right', alpha: 0.28 });
+  if (t < 57) subtitle(t);
+};
+</script>
+</body></html>
