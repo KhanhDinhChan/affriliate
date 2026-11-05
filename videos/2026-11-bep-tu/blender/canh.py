@@ -213,8 +213,10 @@ def setup(shot, t):
     reset(); D = DUR[shot]; k = ease(t / D)
     if shot == 'S1':
         bubbles(t, 1.0); pot_at(0, False)
-        tgt = (lerp(GC[0] + 0.06, GC[0] + 0.0, k), lerp(GC[1] - 0.09, GC[1] - 0.04, k), lerp(GZ + 0.02, GZ + 0.04, k))
-        aim((lerp(0.40, 0.30, k), lerp(-0.62, -0.50, k), lerp(0.36, 0.28, k)), tgt, 42, 4.0)
+        # đầu cảnh: nhìn từ trên vào lòng nồi (thấy nước sôi); 2,2–4,6 s: hạ máy, lấy nét vào viên đá bên cạnh
+        q = ease((t - 2.2) / 2.4); ice = (GC[0] + 0.122, GC[1] - 0.118, GZ + 0.012)
+        tgt = (lerp(GC[0], ice[0], q), lerp(GC[1], ice[1], q), lerp(GZ + 0.07, ice[2], q))
+        aim((lerp(0.22, 0.36, q), lerp(-0.42, -0.44, q), lerp(0.50, 0.17, q)), tgt, 42, lerp(5.6, 2.8, q))
     elif shot == 'S2':
         bubbles(t, 0.6); g = ease((t - 1.5) / 2.0); set_ghost(M_GLASS, 0.82 * g); set_ghost(M_BODY, 0.78 * g)
         aim((lerp(0.05, 0.14, k), lerp(-0.78, -0.58, k), lerp(0.42, 0.17, k)), (GC[0], GC[1], lerp(0.08, 0.055, k)), 42, 5.6)
