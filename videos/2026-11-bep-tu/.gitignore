@@ -1,6 +1,6 @@
 frames/
 frames-*.log
-frames-done.flag
+frames-done*.flag
 out/*.png
 out/*.wav
 out/*.jpg
