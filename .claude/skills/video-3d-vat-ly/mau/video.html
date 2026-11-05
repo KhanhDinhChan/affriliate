@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8">
+<!-- MẪU ghép video 3D + giải thích 2D: "Con lắc đơn" — khổ dọc 9:16, 24 s.
+     0–4 s   3D S1 toàn cảnh            (frames/S1)
+     4–16 s  GIẢI THÍCH 2D: lực P, T, vectơ v mọc theo đúng v(t), đồ thị li độ α(t), công thức chu kì
+     16–20 s 3D S2 cận, mũi tên vận tốc 3D (frames/S2)
+     20–24 s thẻ kết
+     Thư viện lớp phủ: overlay.js (chép từ .claude/skills/video-3d-vat-ly/scripts/). Công thức: tex/*.svg (scripts/tex.js cong-thuc.js). -->
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@500;600;700;800&family=Noto+Serif:wght@600;700&display=swap" rel="stylesheet">
+<style>html,body{margin:0;background:#000}canvas{display:block}</style>
+</head><body><canvas id="c"></canvas>
+<script>
+window.SIZE = [1080, 1920];
+window.DURATION = 24;
+const CHANNEL = '[TÊN KÊNH]', HANDLE = '@tenkenh';
+// n = số khung đã xuất = thời lượng cảnh × 24 + 1 (khớp DUR trong blender/canh.py)
+const SHOTS = [{ id: 'S1', t0: 0, t1: 4, n: 97 }, { id: 'S2', t0: 16, t1: 20, n: 97 }];
+const CAPS = [
+  [0.3, 4.0, 'Vì sao con lắc nào cũng đung đưa đều đặn như nhau?'],
+  [4.0, 7.5, 'Quả nặng chịu hai lực: trọng lực P và lực căng dây T.'],
+  [7.5, 11.0, 'Hợp lực luôn kéo quả nặng về vị trí cân bằng.'],
+  [11.0, 16.0, 'Với góc lệch nhỏ, chu kì chỉ phụ thuộc chiều dài dây và gia tốc trọng trường.'],
+  [16.0, 20.0, 'Qua vị trí cân bằng, vận tốc lớn nhất; ở hai biên, vận tốc bằng không.'],
+];
+</script>
+<script src="overlay.js"></script>
+<script>
+// ===== Vật lí: dùng đúng số liệu của canh.py =====
+const G = 9.8, L = 0.45, TH0 = 28 * Math.PI / 180, OM = Math.sqrt(G / L);
+const th = (t) => TH0 * Math.cos(OM * t);                 // gần đúng góc nhỏ, đủ cho hình 2D
+const thd = (t) => -TH0 * OM * Math.sin(OM * t);
+
+window.ready = Promise.all([loadFonts(), loadTex(['chu-ki', 'li-do'])]);
+
+// ===== Đoạn giải thích 2D (4–16 s) =====
+function explain(t) {
+  const u = t - 4; const tt = u * 0.5;                    // chậm 2 lần để kịp nhìn (có ghi chú)
+  txt('VÌ SAO DAO ĐỘNG?', W / 2, 270, { size: 58, w: 800, ls: 2, alpha: seg(u, 0.1, 0.6) });
+  // --- con lắc ---
+  const px = 540, py = 380, LP = 430, a = th(tt), bx = px + LP * Math.sin(a), by = py + LP * Math.cos(a), D = seg(u, 0.3, 1.0);
+  ctx.save(); ctx.globalAlpha = easeOut(D);
+  ctx.fillStyle = '#3A3D44'; ctx.fillRect(px - 120, py - 14, 240, 14);
+  ctx.setLineDash([8, 10]); ctx.strokeStyle = 'rgba(255,255,255,0.25)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px, py + LP + 60); ctx.stroke(); ctx.setLineDash([]);
+  ctx.strokeStyle = '#D9D9D9'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(bx, by); ctx.stroke();
+  const gr = ctx.createRadialGradient(bx - 10, by - 10, 4, bx, by, 34); gr.addColorStop(0, '#FFE2A8'); gr.addColorStop(1, '#B07A2E'); ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(bx, by, 32, 0, 7); ctx.fill();
+  ctx.restore();
+  // --- lực: P thẳng đứng, T dọc dây; độ dài theo tỉ lệ thật (T = mg·cosα + m·v²/l, dùng đơn vị mg = 150 px) ---
+  const mg = 150, Tn = mg * (Math.cos(a) + L * thd(tt) ** 2 / G);
+  vec(bx, by, bx, by + mg, Q.F, seg(u, 0.8, 1.5), 'P', { side: -1 });
+  vec(bx, by, bx - Tn * Math.sin(a), by - Tn * Math.cos(a), Q.F, seg(u, 1.6, 2.3), 'T', { side: 1 });
+  // hợp lực hướng về vị trí cân bằng (thành phần tiếp tuyến −mg·sinα)
+  const ft = -mg * Math.sin(a), tx = Math.cos(a), ty = -Math.sin(a);
+  if (u > 3.6) vec(bx, by, bx + ft * tx * 1.6, by + ft * ty * 1.6, ACCENT, seg(u, 3.6, 4.3), 'F', { side: -1 });
+  // vận tốc: tiếp tuyến, độ dài ∝ |v|
+  const vs = 120 * thd(tt) / (TH0 * OM);
+  if (u > 6.6) vec(bx, by, bx + vs * tx, by + vs * ty, Q.v, seg(u, 6.6, 7.2), 'v', { side: 1 });
+  // --- đồ thị α(t) ---
+  const ax = axes(140, 990, 800, 240, { p: seg(u, 1.0, 1.8), xl: 't', yl: 'α', xmin: 0, xmax: 3, ymin: -1.2, ymax: 1.2 });
+  if (u > 1.4) plot(ax, (x) => Math.cos(OM * x), 0, Math.min(3, tt), Q.a, { dot: true });
+  note('minh hoạ chậm 2 lần', W - 140, 1270, seg(u, 2.0, 2.6));
+  formula('li-do', W / 2, 1335, 92, seg(u, 4.6, 5.4) * (1 - seg(u, 7.2, 7.6)));
+  formula('chu-ki', W / 2, 1335, 140, seg(u, 7.8, 8.6));
+}
+
+window.renderAt = async (t) => {
+  clearFrame();
+  const sh = await draw3D(t);
+  if (sh) {
+    if (t < 2.2) txt('CON LẮC ĐƠN', W / 2, 330, { size: 92, w: 800, ls: 8, shadow: true, alpha: seg(t, 0.2, 0.6) * (1 - seg(t, 1.8, 2.2)) });
+    tag('vận tốc · mũi tên 3D', 120, 300, fade(t, 16.6, 19.6), Q.v);
+  } else if (t >= 4 && t < 16) explain(t);
+  else if (t >= 20) endCard(t, 20, CHANNEL, 'Vật lí trong đời sống, mỗi tuần một hiện tượng', 'Bài sau: Con lắc lò xo');
+  dips(t, [4, 16, 20]);
+  film(t);
+  watermark(HANDLE);
+  if (t < 20) subtitle(t);
+};
+</script>
+</body></html>
