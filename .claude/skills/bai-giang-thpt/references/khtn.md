@@ -30,14 +30,18 @@ Trong tệp `.js`, mỗi dấu `\` của TeX phải viết thành `\\`. Nếu qu
 
 ### Màu trong công thức — cùng một quy ước với hình vẽ
 
-| Lệnh | Dùng cho | Màu (nền tối) |
-|---|---|---|
-| `\cF{F}` | lực | đỏ hồng |
-| `\cV{v}` | vận tốc; trong Hoá dùng cho chất khí hoặc sản phẩm cần theo dõi | cyan |
-| `\cA{a}` | gia tốc | tím |
-| `\cE{E}` | điện trường, năng lượng | vàng |
-| `\cB{B}` | từ trường | xanh lá |
-| `\hl{...}` | **đáp số, đại lượng cần tìm, chất cần chú ý** | cam (màu nhấn của kênh) |
+Cả hai chế độ đều nền trắng, nên các màu này là **tông đậm** để đủ tương phản. Trong hàm mô phỏng, lấy màu từ `Q` (`Q.F`, `Q.v`, `Q.hl`…) và `T` (`T.ink`, `T.muted`) thay vì gõ mã màu, để hình luôn khớp với công thức.
+
+| Lệnh | Dùng cho | Màu | `Q` |
+|---|---|---|---|
+| `\cF{F}` | lực | đỏ hồng `#E11D48` | `Q.F` |
+| `\cV{v}` | vận tốc; trong Hoá dùng cho chất khí hoặc sản phẩm cần theo dõi | xanh lơ `#0891B2` | `Q.v` |
+| `\cA{a}` | gia tốc | tím `#7C3AED` | `Q.a` |
+| `\cE{E}` | điện trường, năng lượng | vàng đất `#B45309` | `Q.E` |
+| `\cB{B}` | từ trường | xanh lá `#15803D` | `Q.B` |
+| `\hl{...}` | **đáp số, đại lượng cần tìm, chất cần chú ý** | cam đậm `#C2410C` | `Q.hl` |
+
+Trên nền trắng không dùng màu trắng hay màu quá nhạt cho nét vẽ: thành cốc, bọt khí và các vật sáng màu đều cần viền xám (`#64748B` trở lên).
 
 Mũi tên và nhãn trong mô phỏng phải dùng **đúng màu đã tô** trong công thức. Như vậy học sinh nối được ký hiệu với hình mà không cần nghe giải thích.
 

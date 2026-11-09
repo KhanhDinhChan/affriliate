@@ -7,8 +7,8 @@ description: Làm video bài giảng cho kênh học tập THPT, mọi môn — 
 
 Bộ máy trong `engine/` dựng video từ một tệp `scene.js`: lời đọc chia thành beat, mỗi beat có các hành động vẽ. Kênh có **một khung chung** (nhãn môn, phụ đề, thanh tiến độ, thẻ kết) và **hai chế độ**:
 
-- **KHTN** (`toan`, `ly`, `hoa`, `sinh`): nền bảng tối, công thức TeX sắp chữ chuẩn, `swap`/`move`/`highlight` để biến đổi từng bước, `plot` vẽ đồ thị, `draw` mô phỏng hiện tượng theo quy luật thật.
-- **KHXH** (`su`, `dia`, `van`, `gdktpl`): nền sáng, `image` (Ken Burns, ghi nguồn, nhãn minh hoạ), `pin` chú thích trên ảnh, `map` vẽ từ Natural Earth (luôn có QĐ. Hoàng Sa, QĐ. Trường Sa), `timeline`, `quote`.
+- **KHTN** (`toan`, `ly`, `hoa`, `sinh`): nền trắng kẻ ô mờ (giấy ô li), công thức TeX sắp chữ chuẩn, `swap`/`move`/`highlight` để biến đổi từng bước, `plot` vẽ đồ thị, `draw` mô phỏng hiện tượng theo quy luật thật.
+- **KHXH** (`su`, `dia`, `van`, `gdktpl`): nền sáng xám rất nhạt, `image` (Ken Burns, ghi nguồn, nhãn minh hoạ), `pin` chú thích trên ảnh, `map` vẽ từ Natural Earth (luôn có QĐ. Hoàng Sa, QĐ. Trường Sa), `timeline`, `quote`.
 
 Đọc trước khi làm:
 - [references/quy-chuan-chung.md](references/quy-chuan-chung.md): màu môn, bố cục hai khổ, phụ đề, cấu trúc Shorts và bài giảng dài, danh sách kiểm tra trước khi đăng

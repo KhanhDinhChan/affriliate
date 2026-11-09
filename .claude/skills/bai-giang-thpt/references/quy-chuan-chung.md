@@ -7,7 +7,7 @@ Kênh dạy mọi môn THPT nhưng phải trông như **một kênh**. Mọi vid
 | | **KHTN** — Toán, Vật lý, Hoá học, Sinh học | **KHXH** — Lịch sử, Địa lí, Ngữ văn, GDKT & PL |
 |---|---|---|
 | Nhiệm vụ của hình | thấy **công thức** từng bước, thấy **hiện tượng** vận hành | thấy **ảnh, bản đồ, mốc thời gian**, để học sinh hình dung bối cảnh |
-| Nền | bảng tối `#0F1726` có lưới mờ, công thức sáng nổi rõ | nền sáng `#F2F4F7`, ảnh và bản đồ giữ đúng màu thật |
+| Nền | **trắng `#FFFFFF` kẻ ô mờ** như giấy ô li; công thức, đồ thị, mô phỏng vẽ bằng nét đậm | sáng `#F2F4F7`, ảnh và bản đồ giữ đúng màu thật |
 | Đồ vật chính | `formula`, `swap`, `move`, `highlight`, `plot`, `draw` (mô phỏng) | `image` (có `pin`), `map`, `timeline`, `quote`, `card` |
 | Chi tiết | [khtn.md](khtn.md) | [khxh.md](khxh.md) |
 

@@ -34,9 +34,8 @@ const MJ = (() => {
   const docs = {}; const COLORS = {};
   return (tex, mode) => {
     if (!docs[mode]) {
-      const C = mode === 'khxh'
-        ? { F: '#E11D48', v: '#0891B2', a: '#7C3AED', E: '#B45309', B: '#15803D', hl: '#C2410C', sub: '#0F766E' }
-        : { F: '#FF6B85', v: '#38D3EE', a: '#C08BFF', E: '#FFD15C', B: '#4BE08E', hl: '#FF9A3D', sub: '#34D399' };
+      // cả hai chế độ đều nền trắng → màu đậm, đủ tương phản
+      const C = { F: '#E11D48', v: '#0891B2', a: '#7C3AED', E: '#B45309', B: '#15803D', hl: '#C2410C' };
       // \cF{..} lực, \cV vận tốc, \cA gia tốc, \cE điện trường/năng lượng, \cB từ trường, \hl nhấn mạnh.
       // Dùng tên màu tạm (qf, qv…) rồi thay bằng mã màu sau khi sắp chữ — vì dấu # xung đột với tham số macro.
       const macros = {}; COLORS[mode] = {};
@@ -112,8 +111,8 @@ function mapData(views) {
 
   // 2. công thức, ảnh, bản đồ
   const images = {}; const views = [];
-  const ink = mode === 'khxh' ? '#152033' : '#EEF2F8';
-  const QC = mode === 'khxh' ? { F: '#E11D48', v: '#0891B2', a: '#7C3AED', E: '#B45309', B: '#15803D', hl: '#C2410C' } : { F: '#FF6B85', v: '#38D3EE', a: '#C08BFF', E: '#FFD15C', B: '#4BE08E', hl: '#FF9A3D' };
+  const ink = '#152033';
+  const QC = { F: '#E11D48', v: '#0891B2', a: '#7C3AED', E: '#B45309', B: '#15803D', hl: '#C2410C' };
   const portrait = size[1] > size[0];
   for (const b of beats) for (const a of b.do || []) {
     if (a.formula !== undefined) {

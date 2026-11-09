@@ -14,14 +14,15 @@
   const SUB = SUBJECTS[D.subject] || ['BÀI GIẢNG', '#4F46E5', 'khtn'];
   const MODE = D.mode || SUB[2];
   const THEMES = {
-    khtn: { bg: '#0F1726', grid: '#162236', ink: '#EEF2F8', muted: '#9AA8BD', card: 'rgba(255,255,255,0.05)', cardLine: '#2A3A55',
-      capBg: 'rgba(0,0,0,0.62)', capInk: '#FFFFFF', sea: '#12233A', land: '#22344F', border: '#3B5272' },
+    // KHTN: nền trắng kẻ ô mờ như giấy ô li — công thức, đồ thị, mô phỏng nổi rõ bằng nét đậm
+    khtn: { bg: '#FFFFFF', grid: '#EDF1F6', ink: '#152033', muted: '#5A6880', card: '#F7F9FC', cardLine: '#DCE2EA',
+      capBg: 'rgba(21,32,51,0.88)', capInk: '#FFFFFF', sea: '#CFE2F1', land: '#E6DDC6', border: '#AFA38A' },
     khxh: { bg: '#F2F4F7', grid: '#E6EAF0', ink: '#152033', muted: '#5A6880', card: '#FFFFFF', cardLine: '#DCE2EA',
       capBg: 'rgba(21,32,51,0.88)', capInk: '#FFFFFF', sea: '#CFE2F1', land: '#E6DDC6', border: '#AFA38A' },
   };
   const T = THEMES[MODE];
-  // Màu đại lượng (KHTN) — dùng chung với \cF \cV \cA \cE \cB trong công thức
-  const Q = { F: '#FF6B85', v: '#38D3EE', a: '#C08BFF', E: '#FFD15C', B: '#4BE08E', s: '#9FB3C8', hl: CH.accent };
+  // Màu đại lượng (tông đậm cho nền sáng) — dùng chung với \cF \cV \cA \cE \cB \hl trong công thức
+  const Q = { F: '#E11D48', v: '#0891B2', a: '#7C3AED', E: '#B45309', B: '#15803D', s: '#64748B', hl: '#C2410C' };
   const FONT = '"Be Vietnam Pro", "DejaVu Sans", sans-serif';
   const SERIF = '"Noto Serif", "DejaVu Serif", serif';
   const HAND = '"Pangolin", "Be Vietnam Pro", sans-serif';
